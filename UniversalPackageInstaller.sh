@@ -71,7 +71,7 @@ function verifierConnexionInternet {
 function verifierMiseAJour {
     echo "🔍 Vérification des mises à jour du script..."
     # URL factice à remplacer par ton dépôt GitHub
-    url="https://github.com/TonCompte/UniversalPackageInstaller/raw/main/version.txt"
+    url="https://github.com/WilliamWolfy/UniversalPackageInstaller/blob/main/version.txt"
     versionEnLigne=$(curl -s $url)
     if [[ -n "$versionEnLigne" && "$versionEnLigne" != "$scriptVersion" ]]; then
         echo "⚠️ Une nouvelle version est disponible : $versionEnLigne (vous utilisez $scriptVersion)"
