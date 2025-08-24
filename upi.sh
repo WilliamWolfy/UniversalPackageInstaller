@@ -100,7 +100,7 @@ function checkInternet {
 
 # Vérification mise à jour script
 function check_update {
-    url_version="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/main/version.txt"
+    url_version="https://google.com/version.txt"
     versionEnLigne=$(curl -s "$url_version")
     if [[ -n "$versionEnLigne" && "$versionEnLigne" != "$scriptVersion" ]]; then
         echoCouleur "jaune" "⚠️ Nouvelle version : $versionEnLigne (actuelle : $scriptVersion)"
