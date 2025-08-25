@@ -87,6 +87,44 @@ function detecterOS {
     esac
 }
 
+# fonction en cours de dev pour nouvelles fonctionnalités
+function detecterOSV2 {
+    OS_FAMILY="Inconnu"
+    OS_DISTRO="Inconnu"
+    OS_VERSION="Inconnu"
+
+    case "$(uname -s)" in
+        Linux*)
+            OS_FAMILY="Linux"
+            if [[ -f /etc/os-release ]]; then
+                # Lecture des infos depuis os-release
+                . /etc/os-release
+                OS_DISTRO="$ID"
+                OS_VERSION="$VERSION_ID"
+            fi
+            ;;
+        Darwin*)
+            OS_FAMILY="macOS"
+            OS_DISTRO=$(sw_vers -productName)
+            OS_VERSION=$(sw_vers -productVersion)
+            ;;
+        MINGW*|CYGWIN*|MSYS*|Windows_NT)
+            OS_FAMILY="Windows"
+            # Utiliser PowerShell pour obtenir la version exacte
+            OS_DISTRO=$(powershell -Command "(Get-ComputerInfo).WindowsProductName" 2>/dev/null | tr -d '\r')
+            OS_VERSION=$(powershell -Command "(Get-ComputerInfo).WindowsVersion" 2>/dev/null | tr -d '\r')
+            ;;
+        *)
+            OS_FAMILY="Inconnu"
+            OS_DISTRO="Inconnu"
+            OS_VERSION="Inconnu"
+            ;;
+    esac
+
+    echo "🖥️ OS détecté : $OS_FAMILY / $OS_DISTRO / $OS_VERSION"
+}
+
+
 # Vérifier connexion internet
 function verifierInternet {
   echo "🔎 Vérification de la connexion Internet..."
@@ -328,6 +366,34 @@ function exporterPaquets {
 
 function importerPaquets {
     local fichier="$1"
+
+    # Si aucun fichier fourni → proposer menu
+    if [[ -z "$fichier" ]]; then
+        echo "📂 Sélection du fichier à importer"
+        local fichiers=($(ls "$(dirname "$0")"/*.json "$(dirname "$0")"/*.csv 2>/dev/null))
+        
+        if [[ ${#fichiers[@]} -eq 0 ]]; then
+            echo "⚠️ Aucun fichier JSON/CSV trouvé dans le dossier du script."
+            read -rp "👉 Entrez le chemin complet du fichier à importer : " fichier
+        else
+            echo "0) Entrer un chemin personnalisé"
+            for i in "${!fichiers[@]}"; do
+                echo "$((i+1))) ${fichiers[$i]}"
+            done
+            read -rp "👉 Choix : " choix
+
+            if [[ "$choix" == "0" ]]; then
+                read -rp "👉 Entrez le chemin complet du fichier à importer : " fichier
+            elif [[ "$choix" =~ ^[0-9]+$ ]] && (( choix > 0 && choix <= ${#fichiers[@]} )); then
+                fichier="${fichiers[$((choix-1))]}"
+            else
+                echo "❌ Choix invalide"
+                return 1
+            fi
+        fi
+    fi
+
+    # Vérifier l’existence du fichier
     if [[ ! -f "$fichier" ]]; then
         echo "❌ Fichier introuvable : $fichier"
         return 1
@@ -337,7 +403,38 @@ function importerPaquets {
     case "$fichier" in
         *.json)
             if command -v jq >/dev/null 2>&1; then
-                liste=($(jq -r '.packages[]' "$fichier"))
+                # Récupérer toutes les clés disponibles
+                local cles=($(jq -r 'keys[]' "$fichier"))
+                
+                if [[ ${#cles[@]} -gt 1 ]]; then
+                    echo "📂 Profils disponibles dans $fichier :"
+                    for i in "${!cles[@]}"; do
+                        echo "$((i+1))) ${cles[$i]}"
+                    done
+                    read -rp "👉 Choisissez un ou plusieurs profils (ex: 1 3 4) : " choixProfil
+                    
+                    local selection=()
+                    for num in $choixProfil; do
+                        if [[ "$num" =~ ^[0-9]+$ ]] && (( num > 0 && num <= ${#cles[@]} )); then
+                            selection+=("${cles[$((num-1))]}")
+                        else
+                            echo "⚠️ Numéro invalide ignoré : $num"
+                        fi
+                    done
+
+                    if [[ ${#selection[@]} -eq 0 ]]; then
+                        echo "❌ Aucun profil valide sélectionné"
+                        return 1
+                    fi
+
+                    # Fusionner les paquets des profils choisis
+                    for profil in "${selection[@]}"; do
+                        liste+=($(jq -r ".\"$profil\"[]" "$fichier"))
+                    done
+                else
+                    # Une seule clé → on la prend directement
+                    liste=($(jq -r ".[keys[0]][]" "$fichier"))
+                fi
             else
                 echo "⚠️ jq requis pour importer du JSON"
                 return 1
@@ -352,6 +449,9 @@ function importerPaquets {
             ;;
     esac
 
+    # Supprimer doublons éventuels
+    liste=($(printf "%s\n" "${liste[@]}" | sort -u))
+
     echo "📦 Installation de : ${liste[*]}"
     for p in "${liste[@]}"; do
         installerPaquet "$p"
@@ -363,6 +463,32 @@ function importerPaquets {
 # ================================================================
 
 function checkUpdate {
+    # Déduire les URLs des JSON depuis url_script
+    url_base="${url_script%/*}/"          # base : https://raw.githubusercontent.com/.../Prototype/
+    url_packages="${url_base}packages.json"
+    url_profiles="${url_base}profiles.json"
+
+    # Vérifier et télécharger packages.json si absent
+    if [[ ! -f "$PAQUETS_FILE" ]]; then
+        echo "⚠️ $PAQUETS_FILE introuvable, téléchargement..."
+        if curl -s -L -o "$PAQUETS_FILE" "$url_packages"; then
+            echo "✅ $PAQUETS_FILE téléchargé."
+        else
+            echo "❌ Échec du téléchargement de $PAQUETS_FILE"
+        fi
+    fi
+
+    # Vérifier et télécharger profiles.json si absent
+    if [[ ! -f "$PROFILS_FILE" ]]; then
+        echo "⚠️ $PROFILS_FILE introuvable, téléchargement..."
+        if curl -s -L -o "$PROFILS_FILE" "$url_profiles"; then
+            echo "✅ $PROFILS_FILE téléchargé."
+        else
+            echo "❌ Échec du téléchargement de $PROFILS_FILE"
+        fi
+    fi
+
+    # Vérification de la version du script
     echo "🔎 Vérification des mises à jour..."
     versionEnLigne="$(curl -s "$url_version")"
 
@@ -371,7 +497,7 @@ function checkUpdate {
         return
     fi
 
-    if [[ -n "$versionEnLigne" && "$versionEnLigne" != "$scriptVersion" ]]; then
+    if [[ "$versionEnLigne" != "$scriptVersion" ]]; then
         echoCouleur "jaune" "⚠️ Nouvelle version : $versionEnLigne (actuelle : $scriptVersion)"
         read -p "Voulez-vous mettre à jour maintenant ? (o/n) " rep
         if [[ "$rep" =~ ^[Oo]$ ]]; then
@@ -379,7 +505,7 @@ function checkUpdate {
             curl -s -L -o "$0" "$url_script"
             chmod +x "$0"
             echo "✅ Mise à jour effectuée. Redémarrage..."
-            exec "$0" "$@"   # 🔥 Relance automatique du script
+            exec "$0" "$@"   # Relance automatique du script
         fi
     else
         echo "✅ UPI est déjà à jour (version $scriptVersion)"
@@ -409,7 +535,7 @@ function majSysteme {
   if [ "$OS" == "Windows" ]
   then control update
     winget upgrade --all
-    winget install --id MartiCliment.UniGetUI -e --accept-source-agreements --accept-package-agreements
+    winget install --id MartiCliment.UniGetUI -e --accept-source-agreements --accept-package-agreements # Utilitaire de gestion des paquets
     winget install jq # utilitaire de gestion des fichiers format JSON
     GUI="menu"
   fi
@@ -434,7 +560,7 @@ function menuWhiptail {
         case $choix in
             1) menuWhiptailPersonnalise ;;
             2) menuWhiptailProfil ;;
-            3) read -p "Chemin du fichier à importer : " f; importerPaquets "$f" ;;
+            3) importerPaquets ;;
             4) exporterPaquets ;;
             0) exit ;;
         esac
@@ -547,7 +673,7 @@ function menu {
     case $choix in
         1) menuPersonnalise ;;
         2) menuProfil ;;
-        3) read -p "Chemin du fichier à importer : " f; importerPaquets "$f" ;;
+        3) importerPaquets ;;
         4) exporterPaquets ;;
         0) exit ;;
     esac
