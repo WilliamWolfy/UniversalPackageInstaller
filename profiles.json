@@ -1,0 +1,44 @@
+{
+  "profiles": {
+    "Bureautique": [
+      "LibreOffice",
+      "Thunderbird",
+      "Firefox",
+      "VLC"
+    ],
+    "Developpeur": [
+      "Git",
+      "VSCode",
+      "Notepad++",
+      "Firefox"
+    ],
+    "Gamer": [
+      "Steam",
+      "Discord",
+      "OBS Studio",
+      "VLC",
+      "Wine"
+    ],
+    "Graphiste": [
+      "GIMP",
+      "Inkscape",
+      "Blender"
+    ],
+    "LibreAssOS": [
+      "Firefox",
+      "LibreOffice",
+      "Thunderbird",
+      "GIMP",
+      "Inkscape",
+      "Audacity",
+      "OBS Studio",
+      "VLC"
+    ],
+    "Multimedia": [
+      "VLC",
+      "Audacity",
+      "OBS Studio",
+      "Blender"
+    ]
+  }
+}

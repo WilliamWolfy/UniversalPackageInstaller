@@ -1,0 +1,226 @@
+{
+  "packages": [
+    {
+      "name": "Audacity",
+      "category": "Audio",
+      "description": "Éditeur audio libre et multiplateforme",
+      "linux": "sudo apt install -y audacity",
+      "windows": "winget install -e --id Audacity.Audacity"
+    },
+    {
+      "name": "Brave",
+      "category": "Navigateur",
+      "description": "Navigateur rapide et axé sur la confidentialité.",
+      "linux": ["sudo apt install curl",
+                "sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg",
+                "sudo curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources https://brave-browser-apt-release.s3.brave.com/brave-browser.sources",
+                "sudo apt update",
+                "sudo apt install brave-browser"
+      ],
+      "windows": "winget install --id Brave.Brave --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "Blender",
+      "category": "3D",
+      "description": "Suite de modélisation 3D open source",
+      "linux": "sudo apt install -y blender",
+      "windows": "winget install -e --id BlenderFoundation.Blender"
+    },
+    {
+      "name": "Cubic",
+      "category": "Outils",
+      "description": "Création d’images ISO Ubuntu personnalisées.",
+      "linux": "sudo add-apt-repository ppa:cubic-wizard/release && sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6494C6D6997C215E && sudo apt update && sudo apt install -y cubic",
+      "windows": ""
+    },
+    {
+      "name": "Discord",
+      "category": "Communication",
+      "description": "Plateforme de communication pour communautés et jeux",
+      "linux": "sudo apt install -y discord",
+      "windows": "winget install -e --id Discord.Discord"
+    },
+    {
+      "name": "Dolibarr",
+      "category": "ERP/CRM",
+      "description": "Logiciel libre de gestion d’entreprise et d’association (ERP/CRM)",
+      "linux": "sudo apt install -y dolibarr",
+      "windows": ""
+    },
+    {
+      "name": "Docker",
+      "category": "Développement",
+      "description": "Plateforme de conteneurs pour applications.",
+      "linux": "sudo apt install -y docker.io",
+      "windows": ""
+    },
+    {
+        "name": "Element",
+        "category": "Communication",
+        "description": "Client Matrix open-source pour chat/chambres/communautés.",
+        "linux": "sudo snap install element-desktop",
+        "windows": "winget install --id Element.Element --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "Firefox",
+      "category": "Navigateur",
+      "description": "Navigateur web libre et sécurisé",
+      "linux": "sudo apt install -y firefox",
+      "windows": "winget install -e --id Mozilla.Firefox"
+    },
+    {
+      "name": "GIMP",
+      "category": "Graphisme",
+      "description": "Éditeur d'image libre équivalent à Photoshop",
+      "linux": "sudo apt install -y gimp",
+      "windows": "winget install -e --id GIMP.GIMP"
+    },
+    {
+      "name": "Git",
+      "category": "Développement",
+      "description": "Système de gestion de versions distribué",
+      "linux": "sudo apt install -y git",
+      "windows": "winget install -e --id Git.Git"
+    },
+    {
+      "name": "GitHub",
+      "category": "Développement",
+      "description": "Client officiel GitHub CLI.",
+      "linux": "sudo apt install -y gh",
+      "windows": "winget install --id GitHub.cli --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "Inkscape",
+      "category": "Graphisme vectoriel",
+      "description": "Éditeur d'images vectorielles open source",
+      "linux": "sudo apt install -y inkscape",
+      "windows": "winget install -e --id Inkscape.Inkscape"
+    },
+    {
+      "name": "Jitsi",
+      "category": "Communication",
+      "description": "Appels vidéo sécurisés, flexibles",
+      "linux": "sudo apt install -y jitsi-meet || true",
+      "windows": ""
+    },
+    {
+      "name": "Krita",
+      "category": "Graphisme",
+      "description": "Logiciel de peinture numérique libre, destiné aux artistes.",
+      "linux": "sudo apt install -y krita",
+      "windows": ""
+    },
+    {
+      "name": "LibreOffice",
+      "category": "Bureautique",
+      "description": "Suite bureautique libre",
+      "linux": "sudo apt install -y libreoffice",
+      "windows": "winget install -e --id TheDocumentFoundation.LibreOffice"
+    },
+    {
+      "name": "Lutris",
+      "category": "Jeux",
+      "description": "Gestionnaire de jeux open-source (intègre Proton/Wine, GOG, etc.).",
+      "linux": "sudo apt install -y lutris",
+      "windows": "winget install --id Lutris.Lutris --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "Nextcloud",
+      "category": "Cloud",
+      "description": "Synchronisation et partage de fichiers auto-hébergés.",
+      "linux": "sudo snap install nextcloud",
+      "windows": "winget install --id Nextcloud.NextcloudDesktop --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+        "name": "NodeJS",
+        "category": "Développement",
+        "description": "Runtime JavaScript côté serveur.",
+        "linux": "sudo apt install -y nodejs npm",
+        "windows": "winget install --id OpenJS.NodeJS --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "Notepad++",
+      "category": "Développement",
+      "description": "Éditeur de texte avancé pour Windows",
+      "linux": "",
+      "windows": "winget install -e --id Notepad++.Notepad++"
+    },
+    {
+      "name": "OBS Studio",
+      "category": "Streaming",
+      "description": "Logiciel libre de streaming et d'enregistrement vidéo",
+      "linux": "sudo apt install -y obs-studio",
+      "windows": "winget install -e --id OBSProject.OBSStudio"
+    },
+    {
+        "name":"OnlyOffice",
+        "category": "Bureautique",
+        "description": "Suite bureautique collaborative compatible MS Office.",
+        "linux": "sudo snap install onlyoffice-desktopeditors",
+        "windows": "winget install --id ONLYOFFICE.DesktopEditors --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+        "name": "Python",
+        "category": "Développement",
+        "description": "Langage polyvalent pour scripts, data, web…",
+        "linux": "sudo apt install -y python3 python3-pip",
+        "windows": "winget install --id Python.Python.3 --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "RPImager",
+      "category": "Outils",
+      "description": "Écriture simple d’OS sur cartes SD pour Raspberry Pi.",
+      "linux": "sudo apt install -y rpi-imager",
+      "windows": "winget install --id RaspberryPiFoundation.RaspberryPiImager --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "Signal",
+      "category": "Communication",
+      "description": "Messagerie chiffrée de bout en bout.",
+      "linux": "sudo snap install signal-desktop",
+      "windows": "winget install --id OpenWhisperSystems.Signal --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "Steam",
+      "category": "Jeux",
+      "description": "Plateforme de distribution de jeux vidéo",
+      "linux": "sudo apt install -y steam",
+      "windows": "winget install -e --id Valve.Steam"
+    },
+    {
+      "name": "Thunderbird",
+      "category": "Messagerie",
+      "description": "Client de messagerie open source",
+      "linux": "sudo apt install -y thunderbird",
+      "windows": "winget install -e --id Mozilla.Thunderbird"
+    },
+    {
+      "name": "VLC",
+      "category": "Multimédia",
+      "description": "Lecteur multimédia libre",
+      "linux": "sudo apt install -y vlc",
+      "windows": "winget install -e --id VideoLAN.VLC"
+    },
+    {
+        "name": "VirtualBox",
+        "category": "Virtualisation",
+        "description": "Virtualisation d’OS (machines virtuelles).",
+        "linux": "sudo apt install -y virtualbox",
+        "windows": "winget install --id Oracle.VirtualBox --silent --accept-package-agreements --accept-source-agreements"
+    },
+    {
+      "name": "VSCode",
+      "category": "Développement",
+      "description": "Éditeur de code source extensible",
+      "linux": "sudo apt install -y code",
+      "windows": "winget install -e --id Microsoft.VisualStudioCode"
+    },
+    {
+      "name": "Wine",
+      "category": "Compatibilité",
+      "description": "Exécuter des logiciels Windows sous Linux",
+      "linux": "sudo apt install -y wine",
+      "windows": ""
+    }
+  ]
+}
