@@ -14,9 +14,9 @@
 scriptNom="UniversalPackageInstaller"
 scriptAlias="UPI"
 scriptCreateur="William Wolfy"
-scriptVersion="1.0.0"           # ⚠️ Pense à aligner avec version.txt sur GitHub
-url_version="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/refs/heads/main/version.txt"
-url_script="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/main/UPI.sh"
+scriptVersion="25.08.25"           # ⚠️ Pense à aligner avec version.txt sur GitHub
+url_version="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/refs/heads/Prototype/version.txt"
+url_script="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/refs/heads/Prototype/UPI.sh"
 
 scriptRepertoire="$(pwd)"
 
