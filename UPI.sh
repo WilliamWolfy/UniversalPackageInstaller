@@ -2,8 +2,8 @@
 # ================================================================
 # UniversalPackageInstaller (UPI)
 # Auteur : WilliamWolfy
-# Description : Gestion universelle des paquets (Linux & Windows)
-# - Tous les paquets et profils sont externalisés dans des fichiers JSON
+# Description : Gestion universelle des packages (Linux & Windows)
+# - Tous les packages et profils sont externalisés dans des fichiers JSON
 # - Fonctionne sous Linux (apt/snap) et Windows (winget/UnigetUI)
 # - Support export/import JSON et CSV
 # ================================================================
@@ -11,27 +11,43 @@
 # ================================================================
 # CONFIGURATION
 # ================================================================
-scriptNom="UniversalPackageInstaller"
+scriptName="Universal Package Installer"
 scriptAlias="UPI"
-scriptCreateur="William Wolfy"
-scriptVersion="25.08.25"           # ⚠️ Pense à aligner avec version.txt sur GitHub
-url_version="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/refs/heads/Prototype/version.txt"
-url_script="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/refs/heads/Prototype/UPI.sh"
+scriptCreator="William Wolfy"
+scriptVersion="26.08.25"           # ⚠️ Pense à aligner avec version.txt sur GitHub
+url_version="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/refs/heads/Prototype-multi-langue/version.txt"
+url_script="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInstaller/refs/heads/Prototype-multi-langue/UPI.sh"
 
-scriptRepertoire="$(pwd)"
+scriptRepertory="$(pwd)"
 
-PAQUETS_FILE="packages.json"
-PROFILS_FILE="profiles.json"
+PACKAGES_FILE="packages.json"
+PROFILES_FILE="profiles.json"
 
-
-OS="Inconnu"
 GUI="menu"
 
 # ================================================================
 # Utilitaires d'affichage
 # ================================================================
 
-function echoCouleur {
+function load_language {
+    local lang="$1"
+
+    # Vérifie que le fichier existe
+    if [[ ! -f lang.json ]]; then
+        echo "⚠️ File lang.json not found!"
+        return 1
+    fi
+
+    # Boucle sur chaque clé/valeur pour créer des variables
+    while IFS="=" read -r key value; do
+        # Supprime les guillemets autour de la valeur
+        value="${value%\"}"
+        value="${value#\"}"
+        export "$key=$value"
+    done < <(jq -r ".${lang} | to_entries | .[] | \"\(.key)=\(.value)\"" lang.json)
+}
+
+function echoColor {
   local couleur="$1"; shift
   local texte="$*"
   local defaut="\033[0m"
@@ -47,32 +63,146 @@ function echoCouleur {
   fi
 }
 
-function titre {
+function title {
   local texte="$1"
   local symbole="${2:--}"
   local couleur="${3:-defaut}"
   local long=$((${#texte} + 4))
   local separateur
   separateur="$(printf "%${long}s" | tr ' ' "$symbole")"
-  echoCouleur "$couleur" "$separateur"
-  echoCouleur "$couleur" "$symbole $texte $symbole"
-  echoCouleur "$couleur" "$separateur"
+  echoColor "$couleur" "$separateur"
+  echoColor "$couleur" "$symbole $texte $symbole"
+  echoColor "$couleur" "$separateur"
   echo ""
 }
 
-function information { echoCouleur "jaune" "ℹ️  $*"; echo ""; }
+function echoInformation { echo ""; echoColor "jaune" "ℹ️  $*"; echo ""; }
+function echoCheck { echo ""; echoColor "vert" "✅ $*"; echo ""; }
+function echoError { echo ""; echoColor "rouge" "❌ $*"; echo ""; }
+
+# ================================================================
+# Function: askQuestion
+# Handles different question types: Open (QO), Yes/No (QF), Multiple Choice (QCM), Number (QN)
+# Returns answer in variable: $response
+# ================================================================
+function askQuestion() {
+    local prompt="$1"
+    local qtype="${2:-QO}"
+    shift 2
+    local options=("$@")
+    response=""
+
+    case "$qtype" in
+        QO)  # Open question
+            read -rp "$prompt: " response
+            ;;
+
+        QF)  # Yes/No question
+            local yes_list=("Y" "Yes" "O" "Oui" "1")
+            local no_list=("N" "No" "Non" "2")
+            local answer=""
+            while true; do
+                echo -e "$prompt\n1) Yes\n2) No"
+                read -rp "Choice: " answer
+                answer="${answer^}"  # Capitalize first letter
+                if [[ " ${yes_list[*]} " == *" $answer "* ]]; then
+                    response="Yes"
+                    break
+                elif [[ " ${no_list[*]} " == *" $answer "* ]]; then
+                    response="No"
+                    break
+                else
+                    echo "Invalid choice, try again."
+                fi
+            done
+            ;;
+
+        QCM) # Multiple choice question
+            local min=0 max=0
+            local mod=""
+            # Check if first argument is limit
+            if [[ "$1" =~ ^([+-]?[0-9]+)$ ]]; then
+                mod="$1"
+                shift
+                options=("$@")
+            fi
+            local n_options=${#options[@]}
+            local selected=()
+            while true; do
+                echo "$prompt"
+                for i in "${!options[@]}"; do
+                    printf "%d) %s\n" $((i+1)) "${options[$i]}"
+                done
+                read -rp "Enter numbers separated by spaces (0 to cancel): " input
+                [[ "$input" == "0" ]] && response="CANCEL" && return
+
+                selected=()
+                valid=true
+                for num in $input; do
+                    if ! [[ "$num" =~ ^[0-9]+$ ]] || (( num < 1 || num > n_options )); then
+                        valid=false
+                        break
+                    fi
+                    selected+=("${options[$((num-1))]}")
+                done
+                if ! $valid; then
+                    echo "Invalid selection, try again."
+                    continue
+                fi
+
+                # Apply limits if mod is set
+                if [[ -n "$mod" ]]; then
+                    if [[ "$mod" =~ ^\+([0-9]+)$ ]]; then
+                        (( ${#selected[@]} < ${BASH_REMATCH[1]} )) && { echo "Select at least ${BASH_REMATCH[1]} items."; continue; }
+                    elif [[ "$mod" =~ ^-([0-9]+)$ ]]; then
+                        (( ${#selected[@]} > ${BASH_REMATCH[1]} )) && { echo "Select at most ${BASH_REMATCH[1]} items."; continue; }
+                    else
+                        (( ${#selected[@]} != mod )) && { echo "Select exactly $mod items."; continue; }
+                    fi
+                fi
+                break
+            done
+            response="${selected[*]}"
+            ;;
+
+        QN) # Number question
+            local min=${1:-}
+            local max=${2:-}
+            local number=""
+            while true; do
+                local prompt_text="$prompt"
+                [[ -n "$min" && -n "$max" ]] && prompt_text+=" ($min-$max)"
+                [[ -n "$min" && -z "$max" ]] && prompt_text+=" (>= $min)"
+                [[ -z "$min" && -n "$max" ]] && prompt_text+=" (<= $max)"
+                read -rp "$prompt_text: " number
+                if ! [[ "$number" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+                    echo "Please enter a valid number."
+                    continue
+                fi
+                [[ -n "$min" && "$number" -lt "$min" ]] && { echo "Number too small."; continue; }
+                [[ -n "$max" && "$number" -gt "$max" ]] && { echo "Number too large."; continue; }
+                response="$number"
+                break
+            done
+            ;;
+
+        *)
+            echo "Unknown question type: $qtype"
+            ;;
+    esac
+}
+
 
 # ================================================================
 # Infos script
 # ================================================================
 
 function scriptInformation {
-  titre "Bienvenue dans $scriptNom ($scriptAlias)" "#" "bleu"
-  titre "Créé par $scriptCreateur" "/" "blanc"
-  echoCouleur "rouge" "Version: $scriptVersion"
+  title "$Lang_welcome $scriptName ($scriptAlias)" "#" "bleu"
+  title "by $scriptCreator" "/" "blanc"
+  echoColor "rouge" "Version: $scriptVersion"
   echo ""
 }
-
 
 # ================================================================
 # FONCTIONS UTILITAIRES
@@ -111,45 +241,45 @@ function detecterOS {
             ;;
     esac
 
-    echo "🖥️ OS détecté : $OS_FAMILY / $OS_DISTRO / $OS_VERSION"
+    echoInformation "🖥️ OS : $OS_FAMILY / $OS_DISTRO / $OS_VERSION"
 }
 
 
 # Vérifier connexion internet
-function verifierInternet {
-  echo "🔎 Vérification de la connexion Internet..."
+function checkInternet {
+  echo "🔎 $Lang_internet_check..."
   if command -v curl >/dev/null 2>&1; then
     if curl -I -m 5 -s https://github.com >/dev/null; then
-      echo "✅ Connexion Internet OK"
+      echoCheck "$Lang_internet_ok."
       return 0
     fi
   fi
   # fallback ping (Linux: -c ; Windows: -n)
   if ping -c 1 github.com >/dev/null 2>&1 || ping -n 1 github.com >/dev/null 2>&1; then
-    echo "✅ Connexion Internet OK"
+    echoCheck "$Lang_internet_ok."
     return 0
   fi
-  echo "❌ Aucune connexion Internet détectée. Veuillez vérifier votre réseau."
+  echoError "$Lang_internet_fail."
   exit 1
 }
 
-# Charger les paquets disponibles depuis JSON
-function chargerPaquets {
-    if [[ ! -f "$PAQUETS_FILE" ]]; then
-        echo "❌ Fichier $PAQUETS_FILE introuvable"
+# Charger les packages disponibles depuis JSON
+function chargerpackages {
+    if [[ ! -f "$PACKAGES_FILE" ]]; then
+        echoError "$Lang_file_not_found : $PACKAGES_FILE"
         exit 1
     fi
-    mapfile -t listePaquets < <(jq -r '.packages[].name' "$PAQUETS_FILE" | sort)
+    mapfile -t listepackages < <(jq -r '.packages[].name' "$PACKAGES_FILE" | sort)
 }
 
 # Charger un profil prédéfini depuis JSON
-function chargerProfil {
+function loadProfile {
     local profil="$1"
-    if [[ ! -f "$PROFILS_FILE" ]]; then
-        echo "❌ Fichier $PROFILS_FILE introuvable"
+    if [[ ! -f "$PROFILES_FILE" ]]; then
+        echoError "$Lang_file_not_found : $PROFILES_FILE"
         return 1
     fi
-    jq -r --arg p "$profil" '.profiles[$p][]?' "$PROFILS_FILE"
+    jq -r --arg p "$profil" '.profiles[$p][]?' "$PROFILES_FILE"
 }
 
 function arrayToJson() {
@@ -157,98 +287,98 @@ function arrayToJson() {
     printf '%s\n' "${arr[@]}" | jq -R . | jq -s .
 }
 
-function gererPaquet {
-    local paquet="$1"
+function managePackages {
+    local package="$1"
     local action=""
 
-    if [[ -z "$paquet" ]]; then
-        PS3="Choisir une action : "
-        select action in "Ajouter" "Modifier" "Supprimer" "Annuler"; do
+    if [[ -z "$package" ]]; then
+        PS3="$Lang_select_action : "
+        select action in "$Lang_add" "$Lang_edit" "$Lang_delete" "$Lang_cancel"; do
             case $REPLY in
                 1) action="add"; break ;;
                 2) action="edit"; break ;;
                 3) action="delete"; break ;;
                 4) return ;;
-                *) echo "Choix invalide." ;;
+                *) echo "$Lang_invalid_choice." ;;
             esac
         done
     else
-        if jq -e --arg name "$paquet" '.packages[] | select(.name==$name)' "$PAQUETS_FILE" >/dev/null 2>&1; then
+        if jq -e --arg name "$package" '.packages[] | select(.name==$name)' "$PACKAGES_FILE" >/dev/null 2>&1; then
             action="edit"
         else
             action="add"
         fi
     fi
 
-    # Si modification ou suppression, afficher une liste pour choisir le paquet
+    # Si modification ou suppression, afficher une liste pour choisir le package
     if [[ "$action" == "edit" || "$action" == "delete" ]]; then
-        mapfile -t package_list < <(jq -r '.packages[].name' "$PAQUETS_FILE")
-        echo "📦 Liste des paquets disponibles :"
-        select paquet in "${package_list[@]}" "Annuler"; do
+        mapfile -t package_list < <(jq -r '.packages[].name' "$PACKAGES_FILE")
+        echo "📦 $available_packages :"
+        select package in "${package_list[@]}" "Annuler"; do
             if [[ "$REPLY" -ge 1 && "$REPLY" -le "${#package_list[@]}" ]]; then
                 break
             elif [[ "$REPLY" -eq $(( ${#package_list[@]} + 1 )) ]]; then
                 return
             else
-                echo "Choix invalide."
+                echo "$invalid_choice."
             fi
         done
     fi
 
     case $action in
         delete)
-            jq --arg name "$paquet" 'del(.packages[] | select(.name==$name))' "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
-            echo "🗑️ Paquet '$paquet' supprimé."
+            jq --arg name "$package" 'del(.packages[] | select(.name==$name))' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
+            echo "🗑️ $Lang_package_deleted '$package'."
             ;;
         edit)
-            echo "✏️ Modification du paquet '$paquet' :"
+            echo "✏️ $Lang_package_modified '$package' :"
             read -p "Nouvelle description (laisser vide pour conserver) : " new_description
             read -p "Nouvelle catégorie (laisser vide pour conserver) : " new_category
-            [[ -n "$new_description" ]] && jq --arg name "$paquet" --arg desc "$new_description" \
-                '(.packages[] | select(.name==$name).description) |= $desc' "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
-            [[ -n "$new_category" ]] && jq --arg name "$paquet" --arg cat "$new_category" \
-                '(.packages[] | select(.name==$name).category) |= $cat' "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+            [[ -n "$new_description" ]] && jq --arg name "$package" --arg desc "$new_description" \
+                '(.packages[] | select(.name==$name).description) |= $desc' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
+            [[ -n "$new_category" ]] && jq --arg name "$package" --arg cat "$new_category" \
+                '(.packages[] | select(.name==$name).category) |= $cat' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
 
             for os in linux windows macos; do
                 echo "🖥️ Commandes existantes pour $os :"
-                mapfile -t current_cmds < <(jq -r --arg name "$paquet" --arg os "$os" \
-                    '.packages[] | select(.name==$name) | .[$os] // [] | if type=="array" then .[] else . end' "$PAQUETS_FILE")
+                mapfile -t current_cmds < <(jq -r --arg name "$package" --arg os "$os" \
+                    '.packages[] | select(.name==$name) | .[$os] // [] | if type=="array" then .[] else . end' "$PACKAGES_FILE")
                 for c in "${current_cmds[@]}"; do echo " - $c"; done
                 read -p "Ajouter une commande pour $os (laisser vide pour passer) : " cmd
                 if [[ -n "$cmd" ]]; then
-                    jq --arg name "$paquet" --arg os "$os" --arg cmd "$cmd" \
-                        '(.packages[] | select(.name==$name) | .[$os]) += [$cmd]' "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+                    jq --arg name "$package" --arg os "$os" --arg cmd "$cmd" \
+                        '(.packages[] | select(.name==$name) | .[$os]) += [$cmd]' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
                 fi
             done
             ;;
         add)
-            echo "➕ Ajout d'un nouveau paquet :"
-            read -p "Nom : " name
-            paquet="$name"
-            read -p "Description : " description
-            read -p "Catégorie : " category
+            echo "➕ Ajout d'un nouveau package :"
+            read -p "$Lang_name : " name
+            package="$name"
+            read -p "$Lang_description : " description
+            read -p "$Lang_category : " category
 
             declare -a linux_cmds=()
             declare -a windows_cmds=()
             declare -a macos_cmds=()
 
-            read -p "Commandes pour Linux (séparées par ';', laisser vide si aucune) : " input
+            read -p "$Lang_command_line Linux (séparées par ';', laisser vide si aucune) : " input
             [[ -n "$input" ]] && IFS=';' read -r -a linux_cmds <<< "$input"
-            read -p "Commandes pour Windows (séparées par ';', laisser vide si aucune) : " input
+            read -p "$Lang_command_line Windows (séparées par ';', laisser vide si aucune) : " input
             [[ -n "$input" ]] && IFS=';' read -r -a windows_cmds <<< "$input"
-            read -p "Commandes pour macOS (séparées par ';', laisser vide si aucune) : " input
+            read -p "$Lang_command_line macOS (séparées par ';', laisser vide si aucune) : " input
             [[ -n "$input" ]] && IFS=';' read -r -a macos_cmds <<< "$input"
 
             linux_json=$(arrayToJson "${linux_cmds[@]}")
             windows_json=$(arrayToJson "${windows_cmds[@]}")
             macos_json=$(arrayToJson "${macos_cmds[@]}")
 
-            jq --arg name "$paquet" --arg desc "$description" --arg cat "$category" \
+            jq --arg name "$package" --arg desc "$description" --arg cat "$category" \
                --argjson linux "$linux_json" --argjson windows "$windows_json" --argjson macos "$macos_json" \
                '.packages += [{"name":$name,"category":$cat,"description":$desc,"linux":$linux,"windows":$windows,"macos":$macos}]' \
-               "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+               "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
 
-            echo "✅ Paquet '$paquet' ajouté."
+            echoCheck "$Lang_package_added : '$package'."
             ;;
     esac
 }
@@ -294,14 +424,14 @@ function installerDepuisLien {
     if [[ -f "$fichier" ]]; then
         case "$CACHE_MODE" in
             force)
-                echo "🔄 Forçage du re-téléchargement de $url"
+                echo "🔄 $Lang_downloading $url"
                 telecharger "$url" "$fichier"
                 ;;
             cache)
-                echo "✅ Utilisation du cache (aucun téléchargement)"
+                echoCheck "$Lang_using_cache"
                 ;;
             *)
-                echo "📦 Le paquet '$nom' est déjà présent."
+                echo "📦 Le package '$nom' est déjà présent."
                 read -p "Voulez-vous le re-télécharger ? (o/n) " rep
                 if [[ "$rep" =~ ^[Oo]$ ]]; then
                     telecharger "$url" "$fichier"
@@ -366,19 +496,19 @@ function installerDepuisLien {
             ;;
     esac
 
-    echo "✅ Installation terminée pour $nom"
+    echoCheck "$Lang_install_success : $nom"
 }
 
-# Installer un paquet
-function installerPaquet {
-    local paquet="$1"
+# Installer un package
+function installPackage {
+    local package="$1"
 
-    # Vérifie si le paquet est défini dans le fichier JSON
+    # Vérifie si le package est défini dans le fichier JSON
     local data
-    data=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p)' "$PAQUETS_FILE")
+    data=$(jq -r --arg p "$package" '.packages[] | select(.name==$p)' "$PACKAGES_FILE")
 
     if [[ -z "$data" ]]; then
-        echo "⚠️ Paquet '$paquet' non référencé dans $PAQUETS_FILE"
+        echo "⚠️ package '$package' non référencé dans $PACKAGES_FILE"
         echo "➡️ Tentative d'installation automatique selon l'OS..."
 
         case "$OS_FAMILY" in
@@ -386,34 +516,34 @@ function installerPaquet {
                 case "$OS_DISTRO" in
                     ubuntu|debian)
                         sudo apt update
-                        sudo apt install -y "$paquet"
+                        sudo apt install -y "$package"
                         ;;
                     fedora|rhel|centos)
-                        sudo dnf install -y "$paquet"
+                        sudo dnf install -y "$package"
                         ;;
                     arch|manjaro)
-                        sudo pacman -Sy --noconfirm "$paquet"
+                        sudo pacman -Sy --noconfirm "$package"
                         ;;
                     *)
                         echo "⚠️ Distribution Linux $OS_DISTRO non supportée"
                         return 1
                         ;;
                 esac
-                jq --arg name "$paquet" \
+                jq --arg name "$package" \
                    '.packages += [{"name":$name,"description":"Ajout automatique","linux":["installation via gestionnaire"]}]' \
-                   "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+                   "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
                 ;;
             Windows)
-                winget install -e --id "$paquet"
-                jq --arg name "$paquet" \
+                winget install -e --id "$package"
+                jq --arg name "$package" \
                    '.packages += [{"name":$name,"description":"Ajout automatique","windows":["winget install -e --id " + $name]}]' \
-                   "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+                   "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
                 ;;
             MacOS)
-                brew install "$paquet"
-                jq --arg name "$paquet" \
+                brew install "$package"
+                jq --arg name "$package" \
                    '.packages += [{"name":$name,"description":"Ajout automatique","macos":["brew install " + $name]}]' \
-                   "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+                   "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
                 ;;
             *)
                 echo "⚠️ OS non supporté"
@@ -423,102 +553,102 @@ function installerPaquet {
         return 0
     fi
 
-    titre "📦 Installation de $paquet..." "+" "jaune"
+    title "📦 $Lang_installation : $package..." "+" "jaune"
 
     # Récupère URL ou commandes spécifiques
     local url
     local cmds=()
     case "$OS_FAMILY" in
         Linux)
-            url=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .urls.linux // empty' "$PAQUETS_FILE")
-            mapfile -t cmds < <(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .linux | if type=="array" then .[] else . end' "$PAQUETS_FILE")
+            url=$(jq -r --arg p "$package" '.packages[] | select(.name==$p) | .urls.linux // empty' "$PACKAGES_FILE")
+            mapfile -t cmds < <(jq -r --arg p "$package" '.packages[] | select(.name==$p) | .linux | if type=="array" then .[] else . end' "$PACKAGES_FILE")
             ;;
         Windows)
-            url=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .urls.windows // empty' "$PAQUETS_FILE")
-            mapfile -t cmds < <(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .windows | if type=="array" then .[] else . end' "$PAQUETS_FILE")
+            url=$(jq -r --arg p "$package" '.packages[] | select(.name==$p) | .urls.windows // empty' "$PACKAGES_FILE")
+            mapfile -t cmds < <(jq -r --arg p "$package" '.packages[] | select(.name==$p) | .windows | if type=="array" then .[] else . end' "$PACKAGES_FILE")
             ;;
         MacOS)
-            url=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .urls.macos // empty' "$PAQUETS_FILE")
-            mapfile -t cmds < <(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .macos | if type=="array" then .[] else . end' "$PAQUETS_FILE")
+            url=$(jq -r --arg p "$package" '.packages[] | select(.name==$p) | .urls.macos // empty' "$PACKAGES_FILE")
+            mapfile -t cmds < <(jq -r --arg p "$package" '.packages[] | select(.name==$p) | .macos | if type=="array" then .[] else . end' "$PACKAGES_FILE")
             ;;
     esac
 
     # Téléchargement si URL
     if [[ -n "$url" && "$url" != "null" ]]; then
-        echo "🌍 Téléchargement depuis $url"
+        echo "🌍 $Lang_downloading : $url"
         installerDepuisLien "$url"
     fi
 
     # Exécution des commandes spécifiques
     if ((${#cmds[@]} > 0)); then
-        echo "⚙️ Exécution des commandes pour $paquet..."
+        echo "⚙️ $Lang_command_line_running : $package..."
         for cmd in "${cmds[@]}"; do
             echo "➡️ $cmd"
             eval "$cmd"
         done
     fi
 
-    echo "✅ $paquet installé avec succès"
+    echoCheck "$Lang_install_success : $package"
 }
 
 # ================================================================
 # IMPORT / EXPORT
 # ================================================================
 
-function exporterPaquets {
-    titre "*" "Créer et exporter un nouveau profil" "cyan"
+function exportPackages {
+    title "$Lang_export_profile" "*" "cyan"
 
     # --- Étape 1 : Choix des profils existants
-    echo "📂 Profils disponibles :"
+    echo "📂 $Lang_list_profile :"
     jq -r '.profiles | keys[]' profiles.json | nl -w2 -s". "
-    read -p "👉 Numéros des profils à utiliser comme base (séparés par des espaces, vide pour aucun) : " choixProfils
+    read -p "👉 $Lang_select_number : " choixProfils
 
-    paquetsFusion=()
+    packagesFusion=()
 
     if [[ -n "$choixProfils" ]]; then
         for num in $choixProfils; do
             profil=$(jq -r ".profiles | keys[$((num-1))]" profiles.json)
             if [[ "$profil" != "null" ]]; then
                 mapfile -t tmp < <(jq -r ".profiles.\"$profil\"[]" profiles.json)
-                paquetsFusion+=("${tmp[@]}")
+                packagesFusion+=("${tmp[@]}")
             fi
         done
     fi
 
-    # --- Étape 2 : Ajouter des paquets supplémentaires
+    # --- Étape 2 : Ajouter des packages supplémentaires
     echo
-    echo "📦 Liste des paquets disponibles :"
+    echo "📦 $Lang_list_package : "
     jq -r '.packages[].name' packages.json | nl -w2 -s". "
-    read -p "👉 Numéros des paquets supplémentaires à ajouter (séparés par des espaces, vide pour aucun) : " choixPkgs
+    read -p "👉 $Lang_select_number : " choixPkgs
 
     if [[ -n "$choixPkgs" ]]; then
         for num in $choixPkgs; do
-            paquet=$(jq -r ".packages[$((num-1))].name" packages.json)
-            [[ "$paquet" != "null" ]] && paquetsFusion+=("$paquet")
+            package=$(jq -r ".packages[$((num-1))].name" packages.json)
+            [[ "$package" != "null" ]] && packagesFusion+=("$package")
         done
     fi
 
     # --- Nettoyage doublons + tri alphabétique
-    paquetsFusion=($(printf "%s\n" "${paquetsFusion[@]}" | sort -u))
+    packagesFusion=($(printf "%s\n" "${packagesFusion[@]}" | sort -u))
 
-    echo "${paquetFusion[@]}"
+    echo "${packageFusion[@]}"
     # --- Étape 3 : Nom du nouveau profil
-    read -p "👉 Entrez le nom du nouveau profil : " nouveauProfil
-    [[ -z "$nouveauProfil" ]] && nouveauProfil="exported_profile"
+    read -p "👉 Entrez le nom du nouveau profil : " newProfile
+    [[ -z "$newProfile" ]] && newProfile="exported_profile"
 
-    fichierMinimal="$nouveauProfil.json"
-    fichierComplet="$nouveauProfil-full.json"
+    fichierMinimal="$newProfile.json"
+    fichierComplet="$newProfile-full.json"
 
     # --- JSON minimal (noms seulement)
-    jq -n --arg profil "$nouveauProfil" \
-        --argjson paquets "$(printf '%s\n' "${paquetsFusion[@]}" | jq -R . | jq -s .)" \
-        '{($profil): $paquets}' > "$fichierMinimal"
+    jq -n --arg profil "$newProfile" \
+        --argjson packages "$(printf '%s\n' "${packagesFusion[@]}" | jq -R . | jq -s .)" \
+        '{($profil): $packages}' > "$fichierMinimal"
 
     # --- JSON complet (objets complets)
-    # Crée un tableau avec tous les objets correspondant aux noms des paquets fusionnés
-    nomsJson=$(printf '%s\n' "${paquetsFusion[@]}" | jq -R . | jq -s .)
+    # Crée un tableau avec tous les objets correspondant aux noms des packages fusionnés
+    nomsJson=$(printf '%s\n' "${packagesFusion[@]}" | jq -R . | jq -s .)
 
-    jq -n --arg profil "$nouveauProfil" --argjson noms "$nomsJson" \
+    jq -n --arg profil "$newProfile" --argjson noms "$nomsJson" \
         --slurpfile allPackages packages.json \
         '{
             ($profil): $allPackages[0].packages | map(select(.name as $n | $n | IN($noms[])))
@@ -531,16 +661,16 @@ function exporterPaquets {
     # --- Étape 4 : Ajouter à profiles.json ?
     read -p "👉 Ajouter ce profil à profiles.json ? (o/n) " reponse
     if [[ "$reponse" =~ ^[oOyY]$ ]]; then
-        jq --arg profil "$nouveauProfil" \
-           --argjson paquets "$(printf '%s\n' "${paquetsFusion[@]}" | jq -R . | jq -s .)" \
-           '.profiles + {($profil): $paquets} | {profiles: .}' profiles.json \
+        jq --arg profil "$newProfile" \
+           --argjson packages "$(printf '%s\n' "${packagesFusion[@]}" | jq -R . | jq -s .)" \
+           '.profiles + {($profil): $packages} | {profiles: .}' profiles.json \
            > profiles.json.tmp && mv profiles.json.tmp profiles.json
         echo "✅ Profil ajouté à profiles.json"
     fi
 }
 
 
-function importerPaquets {
+function importPackages {
     local fichier="$1"
 
     # --- Choix du fichier si non fourni
@@ -583,35 +713,35 @@ function importerPaquets {
 
     echo "📂 Import du profil : $cleProfil ($typeJSON)"
 
-    local paquets=()
+    local packages=()
     if [[ "$typeJSON" == "minimal" ]]; then
-        paquets=($(jq -r ".\"$cleProfil\"[]" "$fichier"))
+        packages=($(jq -r ".\"$cleProfil\"[]" "$fichier"))
     else
-        # JSON complet : on récupère les noms et ajoute les paquets inconnus dans packages.json
-        mapfile -t paquets < <(jq -r ".\"$cleProfil\"[].name" "$fichier")
-        for p in "${paquets[@]}"; do
+        # JSON complet : on récupère les noms et ajoute les packages inconnus dans packages.json
+        mapfile -t packages < <(jq -r ".\"$cleProfil\"[].name" "$fichier")
+        for p in "${packages[@]}"; do
             exists=$(jq -e --arg name "$p" '.packages[] | select(.name==$name)' packages.json >/dev/null 2>&1; echo $?)
             if [[ $exists -ne 0 ]]; then
-                # Ajout automatique du paquet complet
+                # Ajout automatique du package complet
                 jq --argjson pkg "$(jq -r ".\"$cleProfil\"[] | select(.name==\"$p\")" "$fichier")" \
                    '.packages += [$pkg]' packages.json > packages.json.tmp && mv packages.json.tmp packages.json
-                echo "➕ Paquet inconnu '$p' ajouté dans packages.json"
+                echo "➕ package inconnu '$p' ajouté dans packages.json"
             fi
         done
     fi
 
     # --- Supprimer doublons
-    paquets=($(printf "%s\n" "${paquets[@]}" | sort -u))
+    packages=($(printf "%s\n" "${packages[@]}" | sort -u))
 
     # --- Mise à jour profiles.json
-    jq --arg profil "$cleProfil" --argjson paquets "$(printf '%s\n' "${paquets[@]}" | jq -R . | jq -s .)" \
-       '.profiles + {($profil): $paquets} | {profiles: .}' profiles.json > profiles.json.tmp && mv profiles.json.tmp profiles.json
+    jq --arg profil "$cleProfil" --argjson packages "$(printf '%s\n' "${packages[@]}" | jq -R . | jq -s .)" \
+       '.profiles + {($profil): $packages} | {profiles: .}' profiles.json > profiles.json.tmp && mv profiles.json.tmp profiles.json
     echo "✅ Profil '$cleProfil' ajouté ou mis à jour dans profiles.json"
 
-    # --- Installation des paquets
-    echo "📦 Installation des paquets du profil : ${paquets[*]}"
-    for p in "${paquets[@]}"; do
-        installerPaquet "$p"
+    # --- Installation des packages
+    echo "📦 Installation des packages du profil : ${packages[*]}"
+    for p in "${packages[@]}"; do
+        installPackage "$p"
     done
 }
 
@@ -626,22 +756,22 @@ function checkUpdate {
     url_profiles="${url_base}profiles.json"
 
     # Vérifier et télécharger packages.json si absent
-    if [[ ! -f "$PAQUETS_FILE" ]]; then
-        echo "⚠️ $PAQUETS_FILE introuvable, téléchargement..."
-        if telecharger "$PAQUETS_FILE" "$url_packages"; then
-            echo "✅ $PAQUETS_FILE téléchargé."
+    if [[ ! -f "$PACKAGES_FILE" ]]; then
+        echo "⚠️ $PACKAGES_FILE introuvable, téléchargement..."
+        if telecharger "$PACKAGES_FILE" "$url_packages"; then
+            echo "✅ $PACKAGES_FILE téléchargé."
         else
-            echo "❌ Échec du téléchargement de $PAQUETS_FILE"
+            echo "❌ Échec du téléchargement de $PACKAGES_FILE"
         fi
     fi
 
     # Vérifier et télécharger profiles.json si absent
-    if [[ ! -f "$PROFILS_FILE" ]]; then
-        echo "⚠️ $PROFILS_FILE introuvable, téléchargement..."
-        if telecharger "$url_packages" "$PROFILS_FILE"; then
-            echo "✅ $PROFILS_FILE téléchargé."
+    if [[ ! -f "$PROFILES_FILE" ]]; then
+        echo "⚠️ $PROFILES_FILE introuvable, téléchargement..."
+        if telecharger "$url_packages" "$PROFILES_FILE"; then
+            echo "✅ $PROFILES_FILE téléchargé."
         else
-            echo "❌ Échec du téléchargement de $PROFILS_FILE"
+            echo "❌ Échec du téléchargement de $PROFILES_FILE"
         fi
     fi
 
@@ -655,7 +785,7 @@ function checkUpdate {
     fi
 
     if [[ "$versionEnLigne" != "$scriptVersion" ]]; then
-        echoCouleur "jaune" "⚠️ Nouvelle version : $versionEnLigne (actuelle : $scriptVersion)"
+        echoColor "jaune" "⚠️ Nouvelle version : $versionEnLigne (actuelle : $scriptVersion)"
         read -p "Voulez-vous mettre à jour maintenant ? (o/n) " rep
         if [[ "$rep" =~ ^[Oo]$ ]]; then
             echo "⬇️ Téléchargement de la nouvelle version..."
@@ -674,12 +804,12 @@ function checkUpdate {
 # ================================================================
 
 function majSysteme {
-    titre "Mise à jour et vérification des dépendances" "=" "jaune"
+    title "Mise à jour et vérification des dépendances" "=" "jaune"
 
     if [[ "$OS_FAMILY" == "Linux" ]]; then
         echo "🔄 Mise à jour du système Linux ($OS_DISTRO $OS_VERSION)..."
 
-        # Détecter le gestionnaire de paquets disponible
+        # Détecter le gestionnaire de packages disponible
         if command -v apt >/dev/null 2>&1; then
             PKG_CMD="sudo apt"
             UPDATE_CMD="update && sudo apt upgrade -y"
@@ -701,7 +831,7 @@ function majSysteme {
             UPDATE_CMD="update"
             INSTALL_CMD="add"
         else
-            echo "⚠️ Aucun gestionnaire de paquets reconnu sur cette distribution."
+            echo "⚠️ Aucun gestionnaire de packages reconnu sur cette distribution."
         fi
 
         # Mise à jour du système si gestionnaire détecté
@@ -756,16 +886,16 @@ function menuWhiptail {
             "1" "Installation personnalisée" \
             "2" "Installation par profil" \
             "3" "Importer une liste" \
-            "4" "Exporter les paquets" \
-            "5" "Gérer les paquets" \
+            "4" "Exporter les packages" \
+            "5" "Gérer les packages" \
             "0" "Quitter" 3>&1 1>&2 2>&3)
 
         case $choix in
             1) menuWhiptailPersonnalise ;;
             2) menuWhiptailProfil ;;
-            3) importerPaquets ;;
-            4) exporterPaquets ;;
-            5) gererPaquet ;;
+            3) importPackages ;;
+            4) exportPackages ;;
+            5) managePackages ;;
             0) exit ;;
         esac
     done
@@ -773,36 +903,36 @@ function menuWhiptail {
 
 function menuWhiptailPersonnalise {
     local options=()
-    mapfile -t paquets < <(jq -r '.packages[] | "\(.name)|\(.description)"' "$PAQUETS_FILE")
+    mapfile -t packages < <(jq -r '.packages[] | "\(.name)|\(.description)"' "$PACKAGES_FILE")
 
-    for line in "${paquets[@]}"; do
+    for line in "${packages[@]}"; do
         IFS="|" read -r name desc <<< "$line"
         options+=("$name" "$desc" OFF)
     done
 
-    choix=$(whiptail --title "Choix des paquets" \
+    choix=$(whiptail --title "Choix des packages" \
                      --checklist "Sélectionnez :" 20 78 10 \
                      "${options[@]}" 3>&1 1>&2 2>&3)
 
     for p in $choix; do
-        installerPaquet "$(echo "$p" | tr -d '"')"
+        installPackage "$(echo "$p" | tr -d '"')"
     done
 }
 
 function menuWhiptailProfil {
-    if [[ ! -f "$PROFILS_FILE" ]]; then
-        echo "❌ Fichier $PROFILS_FILE introuvable"
+    if [[ ! -f "$PROFILES_FILE" ]]; then
+        echo "❌ Fichier $PROFILES_FILE introuvable"
         return 1
     fi
 
     # Construit des paires [profil] [description] triées par nom
     local options=()
     while IFS='|' read -r key count; do
-        options+=("$key" "$count paquet(s)")
-    done < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILS_FILE" | sort -t'|' -k1,1)
+        options+=("$key" "$count package(s)")
+    done < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILES_FILE" | sort -t'|' -k1,1)
 
     if ((${#options[@]} == 0)); then
-        echo "❌ Aucun profil trouvé dans $PROFILS_FILE"
+        echo "❌ Aucun profil trouvé dans $PROFILES_FILE"
         return 1
     fi
 
@@ -815,32 +945,32 @@ function menuWhiptailProfil {
     # Annulation (ESC) ou vide → on sort proprement
     [[ -z "$choix" ]] && return 0
 
-    # Récupère les paquets du profil choisi et lance l'installation
-    mapfile -t paquets < <(chargerProfil "$choix")
-    if ((${#paquets[@]} == 0)); then
-        echo "⚠️ Aucun paquet dans le profil « $choix »"
+    # Récupère les packages du profil choisi et lance l'installation
+    mapfile -t packages < <(loadProfile "$choix")
+    if ((${#packages[@]} == 0)); then
+        echo "⚠️ Aucun package dans le profil « $choix »"
         return 0
     fi
 
-    for p in "${paquets[@]}"; do
-        installerPaquet "$p"
+    for p in "${packages[@]}"; do
+        installPackage "$p"
     done
 }
 
 function menuWhiptailProfil {
-    if [[ ! -f "$PROFILS_FILE" ]]; then
-        echo "❌ Fichier $PROFILS_FILE introuvable"
+    if [[ ! -f "$PROFILES_FILE" ]]; then
+        echo "❌ Fichier $PROFILES_FILE introuvable"
         return 1
     fi
 
     # Construit des paires [profil] [description] triées par nom
     local options=()
     while IFS='|' read -r key count; do
-        options+=("$key" "$count paquet(s)")
-    done < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILS_FILE" | sort -t'|' -k1,1)
+        options+=("$key" "$count package(s)")
+    done < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILES_FILE" | sort -t'|' -k1,1)
 
     if ((${#options[@]} == 0)); then
-        echo "❌ Aucun profil trouvé dans $PROFILS_FILE"
+        echo "❌ Aucun profil trouvé dans $PROFILES_FILE"
         return 1
     fi
 
@@ -853,97 +983,115 @@ function menuWhiptailProfil {
     # Annulation (ESC) ou vide → on sort proprement
     [[ -z "$choix" ]] && return 0
 
-    # Récupère les paquets du profil choisi et lance l'installation
-    mapfile -t paquets < <(chargerProfil "$choix")
-    if ((${#paquets[@]} == 0)); then
-        echo "⚠️ Aucun paquet dans le profil « $choix »"
+    # Récupère les packages du profil choisi et lance l'installation
+    mapfile -t packages < <(loadProfile "$choix")
+    if ((${#packages[@]} == 0)); then
+        echo "⚠️ Aucun package dans le profil « $choix »"
         return 0
     fi
 
-    for p in "${paquets[@]}"; do
-        installerPaquet "$p"
+    for p in "${packages[@]}"; do
+        installPackage "$p"
     done
 }
 
-#menus texte simples
 function menu {
-    titre "UniversalPackageInstaller" "W" "jaune"
-    echo "1) Personnalisée"
-    echo "2) Par profil"
-    echo "3) Importer une liste"
-    echo "4) Exporter les paquets"
-    echo "5) Gérer les paquetes"
-    echo "0) Quitter"
-    read -p "Votre choix : " choix
-    case $choix in
-        1) menuPersonnalise ;;
-        2) menuProfil ;;
-        3) importerPaquets ;;
-        4) exporterPaquets ;;
-        5) gererPaquet ;;
-        0) exit ;;
-    esac
+    while true; do
+        title "$scriptName" "W" "jaune"
+        echo "1) ${Lang_personalized:-Personnalisée}"
+        echo "2) ${Lang_by_profile:-Par profil}"
+        echo "3) ${Lang_import_list:-Importer une liste}"
+        echo "4) ${Lang_export_packages:-Exporter les paquets}"
+        echo "5) ${Lang_manage_packages:-Gérer les paquets}"
+        echo "0) ${Lang_exit:-Quitter}"
+        echo ""
+        read -p "${Lang_your_choice:-Votre choix} : " choix
+        case "$choix" in
+            1) menuPersonnalise ;;
+            2) menuProfile ;;   # ← revient dans la boucle sans quitter
+            3) importPackages ;;
+            4) exportPackages ;;
+            5) managePackages ;;
+            0) exit ;;
+            *) echo "❌ ${Lang_invalid_choice:-Choix invalide}" ;;
+        esac
+    done
 }
 
 function menuPersonnalise {
-    # Récupère les paquets "nom|description", triés alphabétiquement
-    mapfile -t paquets < <(jq -r '.packages[] | "\(.name)|\(.description)"' "$PAQUETS_FILE" | sort -t"|" -k1,1)
+    mapfile -t packages < <(jq -r '.packages[].name' "$PACKAGES_FILE" | sort)
 
-    echo "=== 📦 Paquets disponibles ==="
-    i=1
-    declare -A num2name
-    for line in "${paquets[@]}"; do
-        IFS="|" read -r name desc <<< "$line"
-        printf "%2d) %-20s : %s\n" "$i" "$name" "$desc"
-        num2name[$i]="$name"
-        ((i++))
+    title "$Lang_available_packages"
+    for i in "${!packages[@]}"; do
+        printf "%2d) %s\n" "$((i+1))" "${packages[$i]}"
     done
 
-    echo
-    read -p "👉 Entrez les paquets à installer (noms ou numéros, séparés par espace) : " choix
-
-    for p in $choix; do
-        if [[ "$p" =~ ^[0-9]+$ ]]; then
-            # Cas numéro
-            if [[ -n "${num2name[$p]}" ]]; then
-                paquet="${num2name[$p]}"
-                installerPaquet "$paquet"
+    read -p "$Lang_enter_packages" choices
+    for choice in $choices; do
+        if [[ "$choice" =~ ^[0-9]+$ ]]; then
+            if (( choice > 0 && choice <= ${#packages[@]} )); then
+                installPackage "${packages[$((choice-1))]}"
             else
-                echo "⚠️  Numéro $p invalide (aucun paquet associé)"
+                echo "$Lang_invalid_number $choice"
             fi
         else
-            # Cas nom → on laisse installerPaquet gérer
-            installerPaquet "$p"
+            installPackage "$choice"
         fi
     done
 }
 
-function menuProfil {
-    if [[ ! -f "$PROFILS_FILE" ]]; then
-        echo "❌ Fichier $PROFILS_FILE introuvable"
+function menuProfile {
+    if [[ ! -f "$PROFILES_FILE" ]]; then
+        echoError "${Lang_profile_not_found:-Fichier introuvable} $PROFILES_FILE"
         return 1
     fi
 
-    # Liste triée des profils avec le nombre de paquets
-    mapfile -t profils < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILS_FILE" | sort -t'|' -k1,1)
-
-    echo "=== Profils disponibles ==="
-    for line in "${profils[@]}"; do
-        IFS='|' read -r key count <<< "$line"
-        printf " - %s (%s paquet(s))\n" "$key" "$count"
-    done
-
-    read -p "Quel profil installer ? " choix
-    [[ -z "$choix" ]] && return 0
-
-    mapfile -t paquets < <(chargerProfil "$choix")
-    if ((${#paquets[@]} == 0)); then
-        echo "⚠️ Aucun paquet dans le profil « $choix »"
-        return 0
+    # Liste triée "nom|nb"
+    mapfile -t profils < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILES_FILE" | sort -t'|' -k1,1)
+    if ((${#profils[@]} == 0)); then
+        echo "❌ ${Lang_no_profiles:-Aucun profil disponible}"
+        return 1
     fi
 
-    for p in "${paquets[@]}"; do
-        installerPaquet "$p"
+    while true; do
+        echo ""
+        title "${Lang_available_profiles:-Profils disponibles}"
+        for i in "${!profils[@]}"; do
+            IFS='|' read -r key count <<< "${profils[$i]}"
+            printf "%2d) %s (%s)\n" $((i+1)) "$key" "$(printf "${Lang_packages_count:-%s paquet(s)}" "$count")"
+        done
+        echo " 0) ${Lang_back:-Retour}"
+        echo ""
+
+        read -p "${Lang_choose_number:-Choisissez un numéro (0 = Retour) : }" choix
+
+        # Retour
+        if [[ "$choix" == "0" ]]; then
+            return 0
+        fi
+
+        # Validation numérique
+        if [[ "$choix" =~ ^[0-9]+$ ]] && (( choix >= 1 && choix <= ${#profils[@]} )); then
+            idx=$((choix-1))
+            IFS='|' read -r selected _ <<< "${profils[$idx]}"
+
+            # Récupère les paquets du profil choisi
+            mapfile -t paquets < <(jq -r --arg p "$selected" '.profiles[$p][]?' "$PROFILES_FILE")
+            if ((${#paquets[@]} == 0)); then
+                echoError "${Lang_no_package_found:-Aucun paquet trouvé} « $selected »"
+                continue
+            fi
+
+            # Installe
+            for p in "${paquets[@]}"; do
+                installerPaquet "$p"
+            done
+
+            # À la fin, on revient au menu précédent
+            return 0
+        else
+            echoError "${Lang_invalid_number:-Numéro invalide, réessayez.}"
+        fi
     done
 }
 
@@ -951,10 +1099,11 @@ function menuProfil {
 # MAIN
 # ================================================================
 
+load_language "fr"
 scriptInformation
 detecterOS
-verifierInternet
+checkInternet
 checkUpdate
 majSysteme
-chargerPaquets
+chargerpackages
 eval "$GUI"
