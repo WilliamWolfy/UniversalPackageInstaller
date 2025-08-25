@@ -998,22 +998,22 @@ function menuWhiptailProfil {
 function menu {
     while true; do
         title "$scriptName" "W" "jaune"
-        echo "1) ${Lang_personalized:-Personnalisée}"
-        echo "2) ${Lang_by_profile:-Par profil}"
-        echo "3) ${Lang_import_list:-Importer une liste}"
-        echo "4) ${Lang_export_packages:-Exporter les paquets}"
-        echo "5) ${Lang_manage_packages:-Gérer les paquets}"
-        echo "0) ${Lang_exit:-Quitter}"
+        echo "1) ${Lang_personalized:-Personalized}"
+        echo "2) ${Lang_by_profile:-By profile}"
+        echo "3) ${Lang_import_list:-Import list}"
+        echo "4) ${Lang_export_packages:-Export packages}"
+        echo "5) ${Lang_manage_packages:-Manage packages}"
+        echo "0) ${Lang_exit:-Exit}"
         echo ""
-        read -p "${Lang_your_choice:-Votre choix} : " choix
-        case "$choix" in
+        read -p "${Lang_your_choice:-Your choice}: " choice
+        case "$choice" in
             1) menuPersonnalise ;;
-            2) menuProfile ;;   # ← revient dans la boucle sans quitter
+            2) menuProfile ;;
             3) importPackages ;;
             4) exportPackages ;;
             5) managePackages ;;
             0) exit ;;
-            *) echo "❌ ${Lang_invalid_choice:-Choix invalide}" ;;
+            *) echoError "${Lang_invalid_choice:-Invalid choice}" ;;
         esac
     done
 }
@@ -1042,55 +1042,40 @@ function menuPersonnalise {
 
 function menuProfile {
     if [[ ! -f "$PROFILES_FILE" ]]; then
-        echoError "${Lang_profile_not_found:-Fichier introuvable} $PROFILES_FILE"
+        echoError "${Lang_profile_not_found:-File not found}: $PROFILES_FILE"
         return 1
     fi
 
-    # Liste triée "nom|nb"
-    mapfile -t profils < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILES_FILE" | sort -t'|' -k1,1)
-    if ((${#profils[@]} == 0)); then
-        echo "❌ ${Lang_no_profiles:-Aucun profil disponible}"
-        return 1
-    fi
+    mapfile -t profiles < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILES_FILE" | sort -t'|' -k1,1)
+    (( ${#profiles[@]} == 0 )) && { echoError "${Lang_no_profiles:-No profiles available}"; return 1; }
 
     while true; do
         echo ""
-        title "${Lang_available_profiles:-Profils disponibles}"
-        for i in "${!profils[@]}"; do
-            IFS='|' read -r key count <<< "${profils[$i]}"
-            printf "%2d) %s (%s)\n" $((i+1)) "$key" "$(printf "${Lang_packages_count:-%s paquet(s)}" "$count")"
+        title "${Lang_available_profiles:-Available profiles}" "-" "cyan"
+        for i in "${!profiles[@]}"; do
+            IFS='|' read -r name count <<< "${profiles[$i]}"
+            printf "%2d) %s (%s)\n" $((i+1)) "$name" "$(printf "${Lang_packages_count:-%s package(s)}" "$count")"
         done
-        echo " 0) ${Lang_back:-Retour}"
+        echo " 0) ${Lang_back:-Back to menu}"
         echo ""
 
-        read -p "${Lang_choose_number:-Choisissez un numéro (0 = Retour) : }" choix
+        read -p "${Lang_choose_number:-Choose number (0 to go back): }" choice
+        [[ "$choice" == "0" ]] && return 0
 
-        # Retour
-        if [[ "$choix" == "0" ]]; then
-            return 0
-        fi
-
-        # Validation numérique
-        if [[ "$choix" =~ ^[0-9]+$ ]] && (( choix >= 1 && choix <= ${#profils[@]} )); then
-            idx=$((choix-1))
-            IFS='|' read -r selected _ <<< "${profils[$idx]}"
-
-            # Récupère les paquets du profil choisi
-            mapfile -t paquets < <(jq -r --arg p "$selected" '.profiles[$p][]?' "$PROFILES_FILE")
-            if ((${#paquets[@]} == 0)); then
-                echoError "${Lang_no_package_found:-Aucun paquet trouvé} « $selected »"
+        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >=1 && choice <= ${#profiles[@]} )); then
+            idx=$((choice - 1))
+            IFS='|' read -r selected _ <<< "${profiles[$idx]}"
+            mapfile -t packages < <(jq -r --arg p "$selected" '.profiles[$p][]?' "$PROFILES_FILE")
+            if ((${#packages[@]} == 0)); then
+                echoError "${Lang_no_package_found:-No packages found} « $selected »"
                 continue
             fi
-
-            # Installe
-            for p in "${paquets[@]}"; do
-                installerPaquet "$p"
+            for pkg in "${packages[@]}"; do
+                installPackage "$pkg"
             done
-
-            # À la fin, on revient au menu précédent
             return 0
         else
-            echoError "${Lang_invalid_number:-Numéro invalide, réessayez.}"
+            echoError "${Lang_invalid_number:-Invalid number, try again}"
         fi
     done
 }
