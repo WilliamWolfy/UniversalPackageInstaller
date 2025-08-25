@@ -78,17 +78,7 @@ function scriptInformation {
 # FONCTIONS UTILITAIRES
 # ================================================================
 
-# Détection système
 function detecterOS {
-    case "$(uname -s)" in
-        Linux*)  OS="Linux" ;;
-        MINGW*|CYGWIN*|MSYS*|Windows_NT) OS="Windows" ;;
-        *) OS="Inconnu" ;;
-    esac
-}
-
-# fonction en cours de dev pour nouvelles fonctionnalités
-function detecterOSV2 {
     OS_FAMILY="Inconnu"
     OS_DISTRO="Inconnu"
     OS_VERSION="Inconnu"
@@ -162,41 +152,221 @@ function chargerProfil {
     jq -r --arg p "$profil" '.profiles[$p][]?' "$PROFILS_FILE"
 }
 
+function arrayToJson() {
+    local arr=("$@")
+    printf '%s\n' "${arr[@]}" | jq -R . | jq -s .
+}
+
+function gererPaquet {
+    local paquet="$1"
+    local action=""
+
+    if [[ -z "$paquet" ]]; then
+        PS3="Choisir une action : "
+        select action in "Ajouter" "Modifier" "Supprimer" "Annuler"; do
+            case $REPLY in
+                1) action="add"; break ;;
+                2) action="edit"; break ;;
+                3) action="delete"; break ;;
+                4) return ;;
+                *) echo "Choix invalide." ;;
+            esac
+        done
+    else
+        if jq -e --arg name "$paquet" '.packages[] | select(.name==$name)' "$PAQUETS_FILE" >/dev/null 2>&1; then
+            action="edit"
+        else
+            action="add"
+        fi
+    fi
+
+    # Si modification ou suppression, afficher une liste pour choisir le paquet
+    if [[ "$action" == "edit" || "$action" == "delete" ]]; then
+        mapfile -t package_list < <(jq -r '.packages[].name' "$PAQUETS_FILE")
+        echo "📦 Liste des paquets disponibles :"
+        select paquet in "${package_list[@]}" "Annuler"; do
+            if [[ "$REPLY" -ge 1 && "$REPLY" -le "${#package_list[@]}" ]]; then
+                break
+            elif [[ "$REPLY" -eq $(( ${#package_list[@]} + 1 )) ]]; then
+                return
+            else
+                echo "Choix invalide."
+            fi
+        done
+    fi
+
+    case $action in
+        delete)
+            jq --arg name "$paquet" 'del(.packages[] | select(.name==$name))' "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+            echo "🗑️ Paquet '$paquet' supprimé."
+            ;;
+        edit)
+            echo "✏️ Modification du paquet '$paquet' :"
+            read -p "Nouvelle description (laisser vide pour conserver) : " new_description
+            read -p "Nouvelle catégorie (laisser vide pour conserver) : " new_category
+            [[ -n "$new_description" ]] && jq --arg name "$paquet" --arg desc "$new_description" \
+                '(.packages[] | select(.name==$name).description) |= $desc' "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+            [[ -n "$new_category" ]] && jq --arg name "$paquet" --arg cat "$new_category" \
+                '(.packages[] | select(.name==$name).category) |= $cat' "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+
+            for os in linux windows macos; do
+                echo "🖥️ Commandes existantes pour $os :"
+                mapfile -t current_cmds < <(jq -r --arg name "$paquet" --arg os "$os" \
+                    '.packages[] | select(.name==$name) | .[$os] // [] | if type=="array" then .[] else . end' "$PAQUETS_FILE")
+                for c in "${current_cmds[@]}"; do echo " - $c"; done
+                read -p "Ajouter une commande pour $os (laisser vide pour passer) : " cmd
+                if [[ -n "$cmd" ]]; then
+                    jq --arg name "$paquet" --arg os "$os" --arg cmd "$cmd" \
+                        '(.packages[] | select(.name==$name) | .[$os]) += [$cmd]' "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+                fi
+            done
+            ;;
+        add)
+            echo "➕ Ajout d'un nouveau paquet :"
+            read -p "Nom : " name
+            paquet="$name"
+            read -p "Description : " description
+            read -p "Catégorie : " category
+
+            declare -a linux_cmds=()
+            declare -a windows_cmds=()
+            declare -a macos_cmds=()
+
+            read -p "Commandes pour Linux (séparées par ';', laisser vide si aucune) : " input
+            [[ -n "$input" ]] && IFS=';' read -r -a linux_cmds <<< "$input"
+            read -p "Commandes pour Windows (séparées par ';', laisser vide si aucune) : " input
+            [[ -n "$input" ]] && IFS=';' read -r -a windows_cmds <<< "$input"
+            read -p "Commandes pour macOS (séparées par ';', laisser vide si aucune) : " input
+            [[ -n "$input" ]] && IFS=';' read -r -a macos_cmds <<< "$input"
+
+            linux_json=$(arrayToJson "${linux_cmds[@]}")
+            windows_json=$(arrayToJson "${windows_cmds[@]}")
+            macos_json=$(arrayToJson "${macos_cmds[@]}")
+
+            jq --arg name "$paquet" --arg desc "$description" --arg cat "$category" \
+               --argjson linux "$linux_json" --argjson windows "$windows_json" --argjson macos "$macos_json" \
+               '.packages += [{"name":$name,"category":$cat,"description":$desc,"linux":$linux,"windows":$windows,"macos":$macos}]' \
+               "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+
+            echo "✅ Paquet '$paquet' ajouté."
+            ;;
+    esac
+}
+
+telecharger() {
+    local url="$1"
+    local sortie="$2"
+
+    if [[ -z "$sortie" ]]; then
+        # Mode lecture dans stdout
+        if command -v curl >/dev/null 2>&1; then
+            curl -sL "$url"
+        else
+            wget -qO- "$url"
+        fi
+    else
+        # Mode écriture dans fichier
+        if command -v curl >/dev/null 2>&1; then
+            curl -sL -o "$sortie" "$url"
+        else
+            wget -qO "$sortie" "$url"
+        fi
+    fi
+}
+
 function installerDepuisLien {
     local url="$1"
     local nom="$(basename "$url")"
-    local tmpdir="$(mktemp -d)"
-    local fichier="$tmpdir/$nom"
+    local dossier_cache="$(dirname "$0")/packages/$OS_FAMILY"
+    mkdir -p "$dossier_cache"
+    local fichier="$dossier_cache/$nom"
 
-    echo "⬇️ Téléchargement de $url"
-    if command -v curl >/dev/null 2>&1; then
-        curl -L -o "$fichier" "$url"
+    # Mode cache par défaut
+    local CACHE_MODE="normal"
+    for arg in "$@"; do
+        case "$arg" in
+            --force-download) CACHE_MODE="force" ;;
+            --cache-only) CACHE_MODE="cache" ;;
+        esac
+    done
+
+    # Vérification du fichier existant
+    if [[ -f "$fichier" ]]; then
+        case "$CACHE_MODE" in
+            force)
+                echo "🔄 Forçage du re-téléchargement de $url"
+                telecharger "$url" "$fichier"
+                ;;
+            cache)
+                echo "✅ Utilisation du cache (aucun téléchargement)"
+                ;;
+            *)
+                echo "📦 Le paquet '$nom' est déjà présent."
+                read -p "Voulez-vous le re-télécharger ? (o/n) " rep
+                if [[ "$rep" =~ ^[Oo]$ ]]; then
+                    telecharger "$url" "$fichier"
+                else
+                    echo "✅ Utilisation du fichier en cache"
+                fi
+                ;;
+        esac
     else
-        wget -O "$fichier" "$url"
+        telecharger "$url" "$fichier"
     fi
 
-    # Décompression si archive
+    # Décompression automatique pour archives
+    local unpack_dir="$dossier_cache/unpacked"
+    mkdir -p "$unpack_dir"
     case "$fichier" in
-        *.zip) unzip -o "$fichier" -d "$tmpdir" ;;
-        *.tar.gz|*.tgz) tar -xzf "$fichier" -C "$tmpdir" ;;
-        *.tar.xz) tar -xJf "$fichier" -C "$tmpdir" ;;
+        *.zip) unzip -o "$fichier" -d "$unpack_dir" ;;
+        *.tar.gz|*.tgz) tar -xzf "$fichier" -C "$unpack_dir" ;;
+        *.tar.xz) tar -xJf "$fichier" -C "$unpack_dir" ;;
     esac
 
-    if [[ "$OS" == "Linux" ]]; then
-        if [[ "$fichier" =~ \.deb$ ]]; then
-            sudo dpkg -i "$fichier" || sudo apt-get install -f -y
-        elif [[ "$fichier" =~ \.AppImage$ ]]; then
-            chmod +x "$fichier" && sudo mv "$fichier" /usr/local/bin/
-        fi
-    elif [[ "$OS" == "Windows" ]]; then
-        if [[ "$fichier" =~ \.exe$ ]]; then
-            "$fichier" /quiet /norestart
-        elif [[ "$fichier" =~ \.msi$ ]]; then
-            msiexec /i "$fichier" /quiet /norestart
-        fi
-    fi
+    # Installation selon l'OS et type de fichier
+    case "$OS_FAMILY" in
+        Linux)
+            if [[ "$fichier" =~ \.deb$ ]]; then
+                echo "➡️ Installation .deb"
+                sudo dpkg -i "$fichier" 2>/dev/null || sudo apt-get install -f -y
+            elif [[ "$fichier" =~ \.rpm$ ]]; then
+                echo "➡️ Installation .rpm"
+                if command -v dnf >/dev/null 2>&1; then
+                    sudo dnf install -y "$fichier" || sudo yum localinstall -y "$fichier"
+                else
+                    sudo yum localinstall -y "$fichier"
+                fi
+            elif [[ "$fichier" =~ \.AppImage$ ]]; then
+                chmod +x "$fichier"
+                sudo mv "$fichier" /usr/local/bin/
+            elif [[ -x "$fichier" ]]; then
+                bash "$fichier"
+            fi
+            ;;
+        Windows)
+            if [[ "$fichier" =~ \.exe$ ]]; then
+                "$fichier" /quiet /norestart || "$fichier"
+            elif [[ "$fichier" =~ \.msi$ ]]; then
+                msiexec /i "$fichier" /quiet /norestart
+            elif [[ "$fichier" =~ \.zip$ ]]; then
+                unzip -o "$fichier" -d "$HOME/AppData/Local/"
+            fi
+            ;;
+        MacOS)
+            if [[ "$fichier" =~ \.dmg$ ]]; then
+                mkdir -p "$dossier_cache/mnt"
+                hdiutil attach "$fichier" -mountpoint "$dossier_cache/mnt"
+                cp -r "$dossier_cache/mnt"/*.app /Applications/
+                hdiutil detach "$dossier_cache/mnt"
+            elif [[ "$fichier" =~ \.pkg$ ]]; then
+                sudo installer -pkg "$fichier" -target /
+            elif [[ "$fichier" =~ \.zip$ ]]; then
+                unzip -o "$fichier" -d /Applications/
+            fi
+            ;;
+    esac
 
-    echo "✅ Installation depuis lien terminée"
+    echo "✅ Installation terminée pour $nom"
 }
 
 # Installer un paquet
@@ -209,57 +379,77 @@ function installerPaquet {
 
     if [[ -z "$data" ]]; then
         echo "⚠️ Paquet '$paquet' non référencé dans $PAQUETS_FILE"
+        echo "➡️ Tentative d'installation automatique selon l'OS..."
 
-        # Tentative d'installation automatique selon l'OS
-        if [[ "$OS" == "Linux" ]]; then
-            echo "➡️ Tentative d'installation via apt..."
-            if sudo apt install -y "$paquet"; then
-                echo "✅ Paquet $paquet installé avec apt"
-                # Ajout automatique au JSON
+        case "$OS_FAMILY" in
+            Linux)
+                case "$OS_DISTRO" in
+                    ubuntu|debian)
+                        sudo apt update
+                        sudo apt install -y "$paquet"
+                        ;;
+                    fedora|rhel|centos)
+                        sudo dnf install -y "$paquet"
+                        ;;
+                    arch|manjaro)
+                        sudo pacman -Sy --noconfirm "$paquet"
+                        ;;
+                    *)
+                        echo "⚠️ Distribution Linux $OS_DISTRO non supportée"
+                        return 1
+                        ;;
+                esac
                 jq --arg name "$paquet" \
-                   '.packages += [{"name":$name,"description":"Ajout automatique depuis apt","linux":["sudo apt install -y " + $name]}]' \
+                   '.packages += [{"name":$name,"description":"Ajout automatique","linux":["installation via gestionnaire"]}]' \
                    "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
-            else
-                echo "❌ Échec d'installation de $paquet via apt"
-                return 1
-            fi
-
-        elif [[ "$OS" == "Windows" ]]; then
-            echo "➡️ Tentative d'installation via winget..."
-            if winget install -e --id "$paquet"; then
-                echo "✅ Paquet $paquet installé avec winget"
-                # Ajout automatique au JSON
+                ;;
+            Windows)
+                winget install -e --id "$paquet"
                 jq --arg name "$paquet" \
-                   '.packages += [{"name":$name,"description":"Ajout automatique depuis winget","windows":["winget install -e --id " + $name]}]' \
+                   '.packages += [{"name":$name,"description":"Ajout automatique","windows":["winget install -e --id " + $name]}]' \
                    "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
-            else
-                echo "❌ Échec d'installation de $paquet via winget"
+                ;;
+            MacOS)
+                brew install "$paquet"
+                jq --arg name "$paquet" \
+                   '.packages += [{"name":$name,"description":"Ajout automatique","macos":["brew install " + $name]}]' \
+                   "$PAQUETS_FILE" > "$PAQUETS_FILE.tmp" && mv "$PAQUETS_FILE.tmp" "$PAQUETS_FILE"
+                ;;
+            *)
+                echo "⚠️ OS non supporté"
                 return 1
-            fi
-        fi
-
+                ;;
+        esac
         return 0
     fi
 
     titre "📦 Installation de $paquet..." "+" "jaune"
 
-    # Récupère l’URL spécifique à l’OS (si définie)
+    # Récupère URL ou commandes spécifiques
     local url
-    if [[ "$OS" == "Linux" ]]; then
-        url=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .urls.linux // empty' "$PAQUETS_FILE")
-        mapfile -t cmds < <(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .linux | if type=="array" then .[] else . end' "$PAQUETS_FILE")
-    elif [[ "$OS" == "Windows" ]]; then
-        url=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .urls.windows // empty' "$PAQUETS_FILE")
-        mapfile -t cmds < <(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .windows | if type=="array" then .[] else . end' "$PAQUETS_FILE")
-    fi
+    local cmds=()
+    case "$OS_FAMILY" in
+        Linux)
+            url=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .urls.linux // empty' "$PAQUETS_FILE")
+            mapfile -t cmds < <(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .linux | if type=="array" then .[] else . end' "$PAQUETS_FILE")
+            ;;
+        Windows)
+            url=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .urls.windows // empty' "$PAQUETS_FILE")
+            mapfile -t cmds < <(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .windows | if type=="array" then .[] else . end' "$PAQUETS_FILE")
+            ;;
+        MacOS)
+            url=$(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .urls.macos // empty' "$PAQUETS_FILE")
+            mapfile -t cmds < <(jq -r --arg p "$paquet" '.packages[] | select(.name==$p) | .macos | if type=="array" then .[] else . end' "$PAQUETS_FILE")
+            ;;
+    esac
 
-    # 1. Téléchargement si URL définie
+    # Téléchargement si URL
     if [[ -n "$url" && "$url" != "null" ]]; then
         echo "🌍 Téléchargement depuis $url"
         installerDepuisLien "$url"
     fi
 
-    # 2. Exécution des commandes spécifiques
+    # Exécution des commandes spécifiques
     if ((${#cmds[@]} > 0)); then
         echo "⚙️ Exécution des commandes pour $paquet..."
         for cmd in "${cmds[@]}"; do
@@ -278,112 +468,96 @@ function installerPaquet {
 function exporterPaquets {
     titre "*" "Créer et exporter un nouveau profil" "cyan"
 
-    # --- Étape 1 : Choix des profils (optionnel)
+    # --- Étape 1 : Choix des profils existants
     echo "📂 Profils disponibles :"
     jq -r '.profiles | keys[]' profiles.json | nl -w2 -s". "
-    echo
-    read -p "👉 Entrez les numéros des profils à utiliser comme base (séparés par des espaces, vide pour aucun) : " choixProfils
+    read -p "👉 Numéros des profils à utiliser comme base (séparés par des espaces, vide pour aucun) : " choixProfils
 
     paquetsFusion=()
 
     if [[ -n "$choixProfils" ]]; then
-        selectionProfils=()
         for num in $choixProfils; do
             profil=$(jq -r ".profiles | keys[$((num-1))]" profiles.json)
             if [[ "$profil" != "null" ]]; then
-                selectionProfils+=("$profil")
+                mapfile -t tmp < <(jq -r ".profiles.\"$profil\"[]" profiles.json)
+                paquetsFusion+=("${tmp[@]}")
             fi
-        done
-
-        for profil in "${selectionProfils[@]}"; do
-            paquets=$(jq -r ".profiles.\"$profil\"[]" profiles.json)
-            for p in $paquets; do
-                paquetsFusion+=("$p")
-            done
         done
     fi
 
-# --- Étape 2 : Ajouter des paquets supplémentaires
+    # --- Étape 2 : Ajouter des paquets supplémentaires
     echo
     echo "📦 Liste des paquets disponibles :"
-
     jq -r '.packages[].name' packages.json | nl -w2 -s". "
-
-    echo
-    read -p "👉 Entrez les numéros des paquets supplémentaires à ajouter (séparés par des espaces, vide pour aucun) : " choixPkgs
+    read -p "👉 Numéros des paquets supplémentaires à ajouter (séparés par des espaces, vide pour aucun) : " choixPkgs
 
     if [[ -n "$choixPkgs" ]]; then
         for num in $choixPkgs; do
             paquet=$(jq -r ".packages[$((num-1))].name" packages.json)
-
-            if [[ "$paquet" != "null" ]]; then
-                paquetsFusion+=("$paquet")
-            fi
+            [[ "$paquet" != "null" ]] && paquetsFusion+=("$paquet")
         done
     fi
 
-    # Nettoyage doublons + tri alphabétique
+    # --- Nettoyage doublons + tri alphabétique
     paquetsFusion=($(printf "%s\n" "${paquetsFusion[@]}" | sort -u))
 
-    # --- Étape 3 : Nom du nouveau profil et fichier export
-    echo
-    read -p "👉 Entrez le nom du nouveau profil à créer : " nouveauProfil
-    if [[ -z "$nouveauProfil" ]]; then
-        echo "❌ Nom de profil invalide."
-        return 1
-    fi
+    echo "${paquetFusion[@]}"
+    # --- Étape 3 : Nom du nouveau profil
+    read -p "👉 Entrez le nom du nouveau profil : " nouveauProfil
+    [[ -z "$nouveauProfil" ]] && nouveauProfil="exported_profile"
 
-    read -p "👉 Entrez le nom du fichier JSON à créer (par défaut: export.json) : " nomFichier
-    [[ -z "$nomFichier" ]] && nomFichier="export.json"
+    fichierMinimal="$nouveauProfil.json"
+    fichierComplet="$nouveauProfil-full.json"
 
-    # Création du fichier export
-    jq -n --arg profil "$nouveauProfil" --argjson paquets "$(printf '%s\n' "${paquetsFusion[@]}" | jq -R . | jq -s .)" \
-        '{($profil): $paquets}' > "$nomFichier"
+    # --- JSON minimal (noms seulement)
+    jq -n --arg profil "$nouveauProfil" \
+        --argjson paquets "$(printf '%s\n' "${paquetsFusion[@]}" | jq -R . | jq -s .)" \
+        '{($profil): $paquets}' > "$fichierMinimal"
 
-    if jq empty "$nomFichier" >/dev/null 2>&1; then
-        echo "✅ Profil exporté dans $nomFichier (JSON valide)"
-    else
-        echo "❌ Erreur : fichier $nomFichier invalide"
-        return 1
-    fi
+    # --- JSON complet (objets complets)
+    # Crée un tableau avec tous les objets correspondant aux noms des paquets fusionnés
+    nomsJson=$(printf '%s\n' "${paquetsFusion[@]}" | jq -R . | jq -s .)
+
+    jq -n --arg profil "$nouveauProfil" --argjson noms "$nomsJson" \
+        --slurpfile allPackages packages.json \
+        '{
+            ($profil): $allPackages[0].packages | map(select(.name as $n | $n | IN($noms[])))
+        }' > "$fichierComplet"
+
+    echo "✅ Fichiers exportés :"
+    echo "   - Minimal : $fichierMinimal"
+    echo "   - Complet : $fichierComplet"
 
     # --- Étape 4 : Ajouter à profiles.json ?
-    read -p "👉 Voulez-vous ajouter ce profil à profiles.json ? (o/n) " reponse
+    read -p "👉 Ajouter ce profil à profiles.json ? (o/n) " reponse
     if [[ "$reponse" =~ ^[oOyY]$ ]]; then
-        tmp=$(mktemp)
-        jq --arg profil "$nouveauProfil" --argjson paquets "$(printf '%s\n' "${paquetsFusion[@]}" | jq -R . | jq -s .)" \
-            '.profiles + {($profil): $paquets} | {profiles: .}' profiles.json > "$tmp"
-
-        if jq empty "$tmp" >/dev/null 2>&1; then
-            mv "$tmp" profiles.json
-            echo "✅ Profil ajouté à profiles.json (JSON valide)"
-        else
-            echo "❌ Erreur : tentative d’ajout invalide, profiles.json n’a pas été modifié"
-            rm "$tmp"
-        fi
+        jq --arg profil "$nouveauProfil" \
+           --argjson paquets "$(printf '%s\n' "${paquetsFusion[@]}" | jq -R . | jq -s .)" \
+           '.profiles + {($profil): $paquets} | {profiles: .}' profiles.json \
+           > profiles.json.tmp && mv profiles.json.tmp profiles.json
+        echo "✅ Profil ajouté à profiles.json"
     fi
 }
+
 
 function importerPaquets {
     local fichier="$1"
 
-    # Si aucun fichier fourni → proposer menu
+    # --- Choix du fichier si non fourni
     if [[ -z "$fichier" ]]; then
         echo "📂 Sélection du fichier à importer"
-        local fichiers=($(ls "$(dirname "$0")"/*.json "$(dirname "$0")"/*.csv 2>/dev/null))
+        local fichiers=($(ls "$(dirname "$0")"/*.json 2>/dev/null))
         
         if [[ ${#fichiers[@]} -eq 0 ]]; then
-            echo "⚠️ Aucun fichier JSON/CSV trouvé dans le dossier du script."
-            read -rp "👉 Entrez le chemin complet du fichier à importer : " fichier
+            read -rp "⚠️ Aucun fichier JSON trouvé. Entrez le chemin complet du fichier à importer : " fichier
         else
             echo "0) Entrer un chemin personnalisé"
             for i in "${!fichiers[@]}"; do
                 echo "$((i+1))) ${fichiers[$i]}"
             done
             read -rp "👉 Choix : " choix
-
             if [[ "$choix" == "0" ]]; then
-                read -rp "👉 Entrez le chemin complet du fichier à importer : " fichier
+                read -rp "👉 Entrez le chemin complet : " fichier
             elif [[ "$choix" =~ ^[0-9]+$ ]] && (( choix > 0 && choix <= ${#fichiers[@]} )); then
                 fichier="${fichiers[$((choix-1))]}"
             else
@@ -393,67 +567,50 @@ function importerPaquets {
         fi
     fi
 
-    # Vérifier l’existence du fichier
+    # --- Vérification existence fichier
     if [[ ! -f "$fichier" ]]; then
         echo "❌ Fichier introuvable : $fichier"
         return 1
     fi
 
-    local liste=()
-    case "$fichier" in
-        *.json)
-            if command -v jq >/dev/null 2>&1; then
-                # Récupérer toutes les clés disponibles
-                local cles=($(jq -r 'keys[]' "$fichier"))
-                
-                if [[ ${#cles[@]} -gt 1 ]]; then
-                    echo "📂 Profils disponibles dans $fichier :"
-                    for i in "${!cles[@]}"; do
-                        echo "$((i+1))) ${cles[$i]}"
-                    done
-                    read -rp "👉 Choisissez un ou plusieurs profils (ex: 1 3 4) : " choixProfil
-                    
-                    local selection=()
-                    for num in $choixProfil; do
-                        if [[ "$num" =~ ^[0-9]+$ ]] && (( num > 0 && num <= ${#cles[@]} )); then
-                            selection+=("${cles[$((num-1))]}")
-                        else
-                            echo "⚠️ Numéro invalide ignoré : $num"
-                        fi
-                    done
+    # --- Détection type JSON
+    local typeJSON="minimal"  # par défaut minimal
+    local cleProfil
+    cleProfil=$(jq -r 'keys[0]' "$fichier" 2>/dev/null)
+    if jq -e ".\"$cleProfil\"[0] | type == \"object\"" "$fichier" >/dev/null 2>&1; then
+        typeJSON="complet"
+    fi
 
-                    if [[ ${#selection[@]} -eq 0 ]]; then
-                        echo "❌ Aucun profil valide sélectionné"
-                        return 1
-                    fi
+    echo "📂 Import du profil : $cleProfil ($typeJSON)"
 
-                    # Fusionner les paquets des profils choisis
-                    for profil in "${selection[@]}"; do
-                        liste+=($(jq -r ".\"$profil\"[]" "$fichier"))
-                    done
-                else
-                    # Une seule clé → on la prend directement
-                    liste=($(jq -r ".[keys[0]][]" "$fichier"))
-                fi
-            else
-                echo "⚠️ jq requis pour importer du JSON"
-                return 1
+    local paquets=()
+    if [[ "$typeJSON" == "minimal" ]]; then
+        paquets=($(jq -r ".\"$cleProfil\"[]" "$fichier"))
+    else
+        # JSON complet : on récupère les noms et ajoute les paquets inconnus dans packages.json
+        mapfile -t paquets < <(jq -r ".\"$cleProfil\"[].name" "$fichier")
+        for p in "${paquets[@]}"; do
+            exists=$(jq -e --arg name "$p" '.packages[] | select(.name==$name)' packages.json >/dev/null 2>&1; echo $?)
+            if [[ $exists -ne 0 ]]; then
+                # Ajout automatique du paquet complet
+                jq --argjson pkg "$(jq -r ".\"$cleProfil\"[] | select(.name==\"$p\")" "$fichier")" \
+                   '.packages += [$pkg]' packages.json > packages.json.tmp && mv packages.json.tmp packages.json
+                echo "➕ Paquet inconnu '$p' ajouté dans packages.json"
             fi
-            ;;
-        *.csv)
-            liste=($(cat "$fichier"))
-            ;;
-        *)
-            echo "❌ Format non reconnu (attendu .json ou .csv)"
-            return 1
-            ;;
-    esac
+        done
+    fi
 
-    # Supprimer doublons éventuels
-    liste=($(printf "%s\n" "${liste[@]}" | sort -u))
+    # --- Supprimer doublons
+    paquets=($(printf "%s\n" "${paquets[@]}" | sort -u))
 
-    echo "📦 Installation de : ${liste[*]}"
-    for p in "${liste[@]}"; do
+    # --- Mise à jour profiles.json
+    jq --arg profil "$cleProfil" --argjson paquets "$(printf '%s\n' "${paquets[@]}" | jq -R . | jq -s .)" \
+       '.profiles + {($profil): $paquets} | {profiles: .}' profiles.json > profiles.json.tmp && mv profiles.json.tmp profiles.json
+    echo "✅ Profil '$cleProfil' ajouté ou mis à jour dans profiles.json"
+
+    # --- Installation des paquets
+    echo "📦 Installation des paquets du profil : ${paquets[*]}"
+    for p in "${paquets[@]}"; do
         installerPaquet "$p"
     done
 }
@@ -471,7 +628,7 @@ function checkUpdate {
     # Vérifier et télécharger packages.json si absent
     if [[ ! -f "$PAQUETS_FILE" ]]; then
         echo "⚠️ $PAQUETS_FILE introuvable, téléchargement..."
-        if curl -s -L -o "$PAQUETS_FILE" "$url_packages"; then
+        if telecharger "$PAQUETS_FILE" "$url_packages"; then
             echo "✅ $PAQUETS_FILE téléchargé."
         else
             echo "❌ Échec du téléchargement de $PAQUETS_FILE"
@@ -481,7 +638,7 @@ function checkUpdate {
     # Vérifier et télécharger profiles.json si absent
     if [[ ! -f "$PROFILS_FILE" ]]; then
         echo "⚠️ $PROFILS_FILE introuvable, téléchargement..."
-        if curl -s -L -o "$PROFILS_FILE" "$url_profiles"; then
+        if telecharger "$url_packages" "$PROFILS_FILE"; then
             echo "✅ $PROFILS_FILE téléchargé."
         else
             echo "❌ Échec du téléchargement de $PROFILS_FILE"
@@ -490,7 +647,7 @@ function checkUpdate {
 
     # Vérification de la version du script
     echo "🔎 Vérification des mises à jour..."
-    versionEnLigne="$(curl -s "$url_version")"
+    versionEnLigne="$(telecharger "$url_version")"
 
     if [[ -z "$versionEnLigne" ]]; then
         echo "⚠️ Impossible de vérifier la dernière version."
@@ -502,7 +659,7 @@ function checkUpdate {
         read -p "Voulez-vous mettre à jour maintenant ? (o/n) " rep
         if [[ "$rep" =~ ^[Oo]$ ]]; then
             echo "⬇️ Téléchargement de la nouvelle version..."
-            curl -s -L -o "$0" "$url_script"
+            telecharger "$url_script" "$0"
             chmod +x "$0"
             echo "✅ Mise à jour effectuée. Redémarrage..."
             exec "$0" "$@"   # Relance automatique du script
@@ -517,30 +674,75 @@ function checkUpdate {
 # ================================================================
 
 function majSysteme {
+    titre "Mise à jour et vérification des dépendances" "=" "jaune"
 
-  titre "Mise à jour du système et des dépendances utile au fonctionnement du script" "=" "jaune"
+    if [[ "$OS_FAMILY" == "Linux" ]]; then
+        echo "🔄 Mise à jour du système Linux ($OS_DISTRO $OS_VERSION)..."
 
-  if [ "$OS" == "Linux" ]
-  then sudo apt update && sudo apt upgrade -y
-    sudo apt install whiptail
-    sudo apt install dos2unix
+        # Détecter le gestionnaire de paquets disponible
+        if command -v apt >/dev/null 2>&1; then
+            PKG_CMD="sudo apt"
+            UPDATE_CMD="update && sudo apt upgrade -y"
+            INSTALL_CMD="install -y"
+        elif command -v dnf >/dev/null 2>&1; then
+            PKG_CMD="sudo dnf"
+            UPDATE_CMD="upgrade --refresh -y"
+            INSTALL_CMD="install -y"
+        elif command -v pacman >/dev/null 2>&1; then
+            PKG_CMD="sudo pacman"
+            UPDATE_CMD="-Syu --noconfirm"
+            INSTALL_CMD="-S --noconfirm"
+        elif command -v zypper >/dev/null 2>&1; then
+            PKG_CMD="sudo zypper"
+            UPDATE_CMD="refresh && sudo zypper update -y"
+            INSTALL_CMD="install -y"
+        elif command -v apk >/dev/null 2>&1; then
+            PKG_CMD="sudo apk"
+            UPDATE_CMD="update"
+            INSTALL_CMD="add"
+        else
+            echo "⚠️ Aucun gestionnaire de paquets reconnu sur cette distribution."
+        fi
 
-    local ui="$(whiptail -v)"
-    local ui="${ui:0:8}"
-    if [ "$ui" == "whiptail" ]
-    then GUI="menuWhiptail"
-    else GUI="menu"
-  fi
+        # Mise à jour du système si gestionnaire détecté
+        if [[ -n "$PKG_CMD" ]]; then
+            echo "🔄 Mise à jour via $PKG_CMD..."
+            eval "$PKG_CMD $UPDATE_CMD"
+            echo "🔧 Installation des dépendances..."
+            eval "$PKG_CMD $INSTALL_CMD jq whiptail curl unzip wget dos2unix"
+        fi
 
-  if [ "$OS" == "Windows" ]
-  then control update
-    winget upgrade --all
-    winget install --id MartiCliment.UniGetUI -e --accept-source-agreements --accept-package-agreements # Utilitaire de gestion des paquets
-    winget install jq # utilitaire de gestion des fichiers format JSON
-    GUI="menu"
-  fi
+        # Détecter le mode GUI
+        if command -v whiptail >/dev/null 2>&1; then
+            GUI="menuWhiptail"
+        else
+            GUI="menu"
+        fi
 
-fi
+    elif [[ "$OS_FAMILY" == "macOS" ]]; then
+        echo "🔄 Vérification du système macOS ($OS_VERSION)..."
+        if ! command -v brew >/dev/null 2>&1; then
+            echo "⚠️ Homebrew non trouvé, installation..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+        brew update
+        brew upgrade
+        brew install jq wget curl
+        GUI="menu"
+
+    elif [[ "$OS_FAMILY" == "Windows" ]]; then
+        echo "🔄 Mise à jour Windows ($OS_DISTRO $OS_VERSION)..."
+        winget upgrade --all
+        winget install --id MartiCliment.UniGetUI -e --accept-source-agreements --accept-package-agreements
+        winget install --id jq -e --accept-source-agreements --accept-package-agreements
+        GUI="menu"
+
+    else
+        echo "❌ OS non reconnu, impossible de mettre à jour et installer les dépendances."
+        GUI="menu"
+    fi
+
+    echo "✅ Vérification système terminée. Mode GUI : $GUI"
 }
 
 # ================================================================
@@ -555,6 +757,7 @@ function menuWhiptail {
             "2" "Installation par profil" \
             "3" "Importer une liste" \
             "4" "Exporter les paquets" \
+            "5" "Gérer les paquets" \
             "0" "Quitter" 3>&1 1>&2 2>&3)
 
         case $choix in
@@ -562,6 +765,7 @@ function menuWhiptail {
             2) menuWhiptailProfil ;;
             3) importerPaquets ;;
             4) exporterPaquets ;;
+            5) gererPaquet ;;
             0) exit ;;
         esac
     done
@@ -668,6 +872,7 @@ function menu {
     echo "2) Par profil"
     echo "3) Importer une liste"
     echo "4) Exporter les paquets"
+    echo "5) Gérer les paquetes"
     echo "0) Quitter"
     read -p "Votre choix : " choix
     case $choix in
@@ -675,22 +880,41 @@ function menu {
         2) menuProfil ;;
         3) importerPaquets ;;
         4) exporterPaquets ;;
+        5) gererPaquet ;;
         0) exit ;;
     esac
 }
 
 function menuPersonnalise {
-    mapfile -t paquets < <(jq -r '.packages[] | "\(.name)|\(.description)"' "$PAQUETS_FILE")
+    # Récupère les paquets "nom|description", triés alphabétiquement
+    mapfile -t paquets < <(jq -r '.packages[] | "\(.name)|\(.description)"' "$PAQUETS_FILE" | sort -t"|" -k1,1)
 
-    echo "=== Paquets disponibles ==="
+    echo "=== 📦 Paquets disponibles ==="
+    i=1
+    declare -A num2name
     for line in "${paquets[@]}"; do
         IFS="|" read -r name desc <<< "$line"
-        printf " - %s : %s\n" "$name" "$desc"
+        printf "%2d) %-20s : %s\n" "$i" "$name" "$desc"
+        num2name[$i]="$name"
+        ((i++))
     done
 
-    read -p "Entrez les paquets à installer (séparés par espace) : " choix
+    echo
+    read -p "👉 Entrez les paquets à installer (noms ou numéros, séparés par espace) : " choix
+
     for p in $choix; do
-        installerPaquet "$p"
+        if [[ "$p" =~ ^[0-9]+$ ]]; then
+            # Cas numéro
+            if [[ -n "${num2name[$p]}" ]]; then
+                paquet="${num2name[$p]}"
+                installerPaquet "$paquet"
+            else
+                echo "⚠️  Numéro $p invalide (aucun paquet associé)"
+            fi
+        else
+            # Cas nom → on laisse installerPaquet gérer
+            installerPaquet "$p"
+        fi
     done
 }
 
@@ -729,6 +953,7 @@ function menuProfil {
 
 scriptInformation
 detecterOS
+detecterOSV2
 verifierInternet
 checkUpdate
 majSysteme
