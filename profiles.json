@@ -4,25 +4,40 @@
       "LibreOffice",
       "Thunderbird",
       "Firefox",
-      "VLC"
+      "VLC",
+      "Google Chrome",
+      "Dropbox",
+      "BleachBit"
     ],
     "Developpeur": [
       "Git",
       "VSCode",
       "Notepad++",
-      "Firefox"
+      "Firefox",
+      "Postman",
+      "Docker Compose",
+      "Java (OpenJDK 17)",
+      "PHP",
+      "Neofetch",
+      "htop"
     ],
     "Gamer": [
       "Steam",
       "Discord",
       "OBS Studio",
       "VLC",
-      "Wine"
+      "Wine",
+      "Heroic Games Launcher",
+      "Itch.io",
+      "Telegram"
     ],
     "Graphiste": [
       "GIMP",
       "Inkscape",
-      "Blender"
+      "Blender",
+      "Audacious",
+      "HandBrake",
+      "Spotify"
     ],
     "LibreAssOS": [
       "Firefox",
@@ -38,7 +53,40 @@
       "VLC",
       "Audacity",
       "OBS Studio",
-      "Blender"
+      "Blender",
+      "Spotify",
+      "HandBrake",
+      "Google Chrome"
+    ],
+    "Communication": [
+      "Slack",
+      "Telegram",
+      "Zoom",
+      "Microsoft Teams",
+      "Discord",
+      "Thunderbird"
+    ],
+    "Cloud": [
+      "Dropbox",
+      "rclone",
+      "MegaSync",
+      "Google Chrome",
+      "Firefox"
+    ],
+    "Sécurité": [
+      "Tor Browser",
+      "BleachBit",
+      "KeePassXC",
+      "VeraCrypt",
+      "OpenVPN",
+      "WireGuard",
+      "GnuPG",
+      "ClamAV",
+      "Signal",
+      "GUFW",
+      "Wireshark",
+      "Nmap",
+      "Metasploit"
     ]
   }
 }
