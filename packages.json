@@ -4,223 +4,576 @@
       "name": "Audacity",
       "category": "Audio",
       "description": "Éditeur audio libre et multiplateforme",
-      "linux": "sudo apt install -y audacity",
-      "windows": "winget install -e --id Audacity.Audacity"
+      "linux": ["sudo apt install -y audacity"],
+      "windows": ["winget install -e --id Audacity.Audacity"],
+      "macos": ["brew install --cask audacity"]
     },
     {
       "name": "Brave",
       "category": "Navigateur",
-      "description": "Navigateur rapide et axé sur la confidentialité.",
-      "linux": ["sudo apt install curl",
-                "sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg",
-                "sudo curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources https://brave-browser-apt-release.s3.brave.com/brave-browser.sources",
-                "sudo apt update",
-                "sudo apt install brave-browser"
+      "description": "Navigateur rapide et axé sur la confidentialité",
+      "linux": [
+        "sudo apt install curl -y",
+        "sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg",
+        "sudo curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources https://brave-browser-apt-release.s3.brave.com/brave-browser.sources",
+        "sudo apt update",
+        "sudo apt install -y brave-browser"
       ],
-      "windows": "winget install --id Brave.Brave --silent --accept-package-agreements --accept-source-agreements"
+      "windows": ["winget install --id Brave.Brave --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask brave-browser"]
     },
     {
       "name": "Blender",
       "category": "3D",
       "description": "Suite de modélisation 3D open source",
-      "linux": "sudo apt install -y blender",
-      "windows": "winget install -e --id BlenderFoundation.Blender"
+      "linux": ["sudo apt install -y blender"],
+      "windows": ["winget install -e --id BlenderFoundation.Blender"],
+      "macos": ["brew install --cask blender"]
     },
     {
       "name": "Cubic",
       "category": "Outils",
-      "description": "Création d’images ISO Ubuntu personnalisées.",
-      "linux": "sudo add-apt-repository ppa:cubic-wizard/release && sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6494C6D6997C215E && sudo apt update && sudo apt install -y cubic",
-      "windows": ""
+      "description": "Création d’images ISO Ubuntu personnalisées",
+      "linux": ["sudo add-apt-repository ppa:cubic-wizard/release -y",
+                "sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6494C6D6997C215E",
+                "sudo apt update",
+                "sudo apt install -y cubic"],
+      "windows": [],
+      "macos": []
     },
     {
       "name": "Discord",
       "category": "Communication",
       "description": "Plateforme de communication pour communautés et jeux",
-      "linux": "sudo apt install -y discord",
-      "windows": "winget install -e --id Discord.Discord"
+      "linux": ["sudo apt install -y discord"],
+      "windows": ["winget install -e --id Discord.Discord"],
+      "macos": ["brew install --cask discord"]
     },
     {
       "name": "Dolibarr",
       "category": "ERP/CRM",
       "description": "Logiciel libre de gestion d’entreprise et d’association (ERP/CRM)",
-      "linux": "sudo apt install -y dolibarr",
-      "windows": ""
+      "linux": ["sudo apt install -y dolibarr"],
+      "windows": [],
+      "macos": []
     },
     {
       "name": "Docker",
       "category": "Développement",
-      "description": "Plateforme de conteneurs pour applications.",
-      "linux": "sudo apt install -y docker.io",
-      "windows": ""
+      "description": "Plateforme de conteneurs pour applications",
+      "linux": ["sudo apt install -y docker.io"],
+      "windows": ["winget install --id Docker.DockerDesktop --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask docker"]
     },
     {
-        "name": "Element",
-        "category": "Communication",
-        "description": "Client Matrix open-source pour chat/chambres/communautés.",
-        "linux": "sudo snap install element-desktop",
-        "windows": "winget install --id Element.Element --silent --accept-package-agreements --accept-source-agreements"
+      "name": "Element",
+      "category": "Communication",
+      "description": "Client Matrix open-source pour chat/chambres/communautés",
+      "linux": ["sudo snap install element-desktop"],
+      "windows": ["winget install --id Element.Element --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask element"]
     },
     {
       "name": "Firefox",
       "category": "Navigateur",
       "description": "Navigateur web libre et sécurisé",
-      "linux": "sudo apt install -y firefox",
-      "windows": "winget install -e --id Mozilla.Firefox"
+      "linux": ["sudo apt install -y firefox"],
+      "windows": ["winget install -e --id Mozilla.Firefox"],
+      "macos": ["brew install --cask firefox"]
     },
     {
       "name": "GIMP",
       "category": "Graphisme",
       "description": "Éditeur d'image libre équivalent à Photoshop",
-      "linux": "sudo apt install -y gimp",
-      "windows": "winget install -e --id GIMP.GIMP"
+      "linux": ["sudo apt install -y gimp"],
+      "windows": ["winget install -e --id GIMP.GIMP"],
+      "macos": ["brew install --cask gimp"]
     },
     {
       "name": "Git",
       "category": "Développement",
       "description": "Système de gestion de versions distribué",
-      "linux": "sudo apt install -y git",
-      "windows": "winget install -e --id Git.Git"
+      "linux": ["sudo apt install -y git"],
+      "windows": ["winget install -e --id Git.Git"],
+      "macos": ["brew install git"]
     },
     {
       "name": "GitHub",
       "category": "Développement",
-      "description": "Client officiel GitHub CLI.",
-      "linux": "sudo apt install -y gh",
-      "windows": "winget install --id GitHub.cli --silent --accept-package-agreements --accept-source-agreements"
+      "description": "Client officiel GitHub CLI",
+      "linux": ["sudo apt install -y gh"],
+      "windows": ["winget install --id GitHub.cli --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install gh"]
     },
     {
       "name": "Inkscape",
       "category": "Graphisme vectoriel",
       "description": "Éditeur d'images vectorielles open source",
-      "linux": "sudo apt install -y inkscape",
-      "windows": "winget install -e --id Inkscape.Inkscape"
+      "linux": ["sudo apt install -y inkscape"],
+      "windows": ["winget install -e --id Inkscape.Inkscape"],
+      "macos": ["brew install --cask inkscape"]
     },
     {
       "name": "Jitsi",
       "category": "Communication",
       "description": "Appels vidéo sécurisés, flexibles",
-      "linux": "sudo apt install -y jitsi-meet || true",
-      "windows": ""
+      "linux": ["sudo apt install -y jitsi-meet || true"],
+      "windows": [],
+      "macos": []
     },
     {
       "name": "Krita",
       "category": "Graphisme",
-      "description": "Logiciel de peinture numérique libre, destiné aux artistes.",
-      "linux": "sudo apt install -y krita",
-      "windows": ""
+      "description": "Logiciel de peinture numérique libre, destiné aux artistes",
+      "linux": ["sudo apt install -y krita"],
+      "windows": [],
+      "macos": ["brew install --cask krita"]
     },
     {
       "name": "LibreOffice",
       "category": "Bureautique",
       "description": "Suite bureautique libre",
-      "linux": "sudo apt install -y libreoffice",
-      "windows": "winget install -e --id TheDocumentFoundation.LibreOffice"
+      "linux": ["sudo apt install -y libreoffice"],
+      "windows": ["winget install -e --id TheDocumentFoundation.LibreOffice"],
+      "macos": ["brew install --cask libreoffice"]
     },
     {
       "name": "Lutris",
       "category": "Jeux",
-      "description": "Gestionnaire de jeux open-source (intègre Proton/Wine, GOG, etc.).",
-      "linux": "sudo apt install -y lutris",
-      "windows": "winget install --id Lutris.Lutris --silent --accept-package-agreements --accept-source-agreements"
+      "description": "Gestionnaire de jeux open-source (intègre Proton/Wine, GOG, etc.)",
+      "linux": ["sudo apt install -y lutris"],
+      "windows": ["winget install --id Lutris.Lutris --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask lutris"]
     },
     {
       "name": "Nextcloud",
       "category": "Cloud",
-      "description": "Synchronisation et partage de fichiers auto-hébergés.",
-      "linux": "sudo snap install nextcloud",
-      "windows": "winget install --id Nextcloud.NextcloudDesktop --silent --accept-package-agreements --accept-source-agreements"
+      "description": "Synchronisation et partage de fichiers auto-hébergés",
+      "linux": ["sudo snap install nextcloud"],
+      "windows": ["winget install --id Nextcloud.NextcloudDesktop --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask nextcloud"]
     },
     {
-        "name": "NodeJS",
-        "category": "Développement",
-        "description": "Runtime JavaScript côté serveur.",
-        "linux": "sudo apt install -y nodejs npm",
-        "windows": "winget install --id OpenJS.NodeJS --silent --accept-package-agreements --accept-source-agreements"
+      "name": "NodeJS",
+      "category": "Développement",
+      "description": "Runtime JavaScript côté serveur",
+      "linux": ["sudo apt install -y nodejs npm"],
+      "windows": ["winget install --id OpenJS.NodeJS --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install node"]
     },
     {
       "name": "Notepad++",
       "category": "Développement",
       "description": "Éditeur de texte avancé pour Windows",
-      "linux": "",
-      "windows": "winget install -e --id Notepad++.Notepad++"
+      "linux": [],
+      "windows": ["winget install -e --id Notepad++.Notepad++"],
+      "macos": []
     },
     {
       "name": "OBS Studio",
       "category": "Streaming",
       "description": "Logiciel libre de streaming et d'enregistrement vidéo",
-      "linux": "sudo apt install -y obs-studio",
-      "windows": "winget install -e --id OBSProject.OBSStudio"
+      "linux": ["sudo apt install -y obs-studio"],
+      "windows": ["winget install -e --id OBSProject.OBSStudio"],
+      "macos": ["brew install --cask obs"]
     },
     {
-        "name":"OnlyOffice",
-        "category": "Bureautique",
-        "description": "Suite bureautique collaborative compatible MS Office.",
-        "linux": "sudo snap install onlyoffice-desktopeditors",
-        "windows": "winget install --id ONLYOFFICE.DesktopEditors --silent --accept-package-agreements --accept-source-agreements"
+      "name": "OnlyOffice",
+      "category": "Bureautique",
+      "description": "Suite bureautique collaborative compatible MS Office",
+      "linux": ["sudo snap install onlyoffice-desktopeditors"],
+      "windows": ["winget install --id ONLYOFFICE.DesktopEditors --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask onlyoffice"]
     },
     {
-        "name": "Python",
-        "category": "Développement",
-        "description": "Langage polyvalent pour scripts, data, web…",
-        "linux": "sudo apt install -y python3 python3-pip",
-        "windows": "winget install --id Python.Python.3 --silent --accept-package-agreements --accept-source-agreements"
+      "name": "Python",
+      "category": "Développement",
+      "description": "Langage polyvalent pour scripts, data, web…",
+      "linux": ["sudo apt install -y python3 python3-pip"],
+      "windows": ["winget install --id Python.Python.3 --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install python"]
     },
     {
       "name": "RPImager",
       "category": "Outils",
-      "description": "Écriture simple d’OS sur cartes SD pour Raspberry Pi.",
-      "linux": "sudo apt install -y rpi-imager",
-      "windows": "winget install --id RaspberryPiFoundation.RaspberryPiImager --silent --accept-package-agreements --accept-source-agreements"
+      "description": "Écriture simple d’OS sur cartes SD pour Raspberry Pi",
+      "linux": ["sudo apt install -y rpi-imager"],
+      "windows": ["winget install --id RaspberryPiFoundation.RaspberryPiImager --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask raspberry-pi-imager"]
     },
     {
       "name": "Signal",
       "category": "Communication",
-      "description": "Messagerie chiffrée de bout en bout.",
-      "linux": "sudo snap install signal-desktop",
-      "windows": "winget install --id OpenWhisperSystems.Signal --silent --accept-package-agreements --accept-source-agreements"
+      "description": "Messagerie chiffrée de bout en bout",
+      "linux": ["sudo snap install signal-desktop"],
+      "windows": ["winget install --id OpenWhisperSystems.Signal --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask signal"]
     },
     {
       "name": "Steam",
       "category": "Jeux",
       "description": "Plateforme de distribution de jeux vidéo",
-      "linux": "sudo apt install -y steam",
-      "windows": "winget install -e --id Valve.Steam"
+      "linux": ["sudo apt install -y steam"],
+      "windows": ["winget install -e --id Valve.Steam"],
+      "macos": ["brew install --cask steam"]
     },
     {
       "name": "Thunderbird",
       "category": "Messagerie",
       "description": "Client de messagerie open source",
-      "linux": "sudo apt install -y thunderbird",
-      "windows": "winget install -e --id Mozilla.Thunderbird"
+      "linux": ["sudo apt install -y thunderbird"],
+      "windows": ["winget install -e --id Mozilla.Thunderbird"],
+      "macos": ["brew install --cask thunderbird"]
     },
     {
       "name": "VLC",
       "category": "Multimédia",
       "description": "Lecteur multimédia libre",
-      "linux": "sudo apt install -y vlc",
-      "windows": "winget install -e --id VideoLAN.VLC"
+      "linux": ["sudo apt install -y vlc"],
+      "windows": ["winget install -e --id VideoLAN.VLC"],
+      "macos": ["brew install --cask vlc"]
     },
     {
-        "name": "VirtualBox",
-        "category": "Virtualisation",
-        "description": "Virtualisation d’OS (machines virtuelles).",
-        "linux": "sudo apt install -y virtualbox",
-        "windows": "winget install --id Oracle.VirtualBox --silent --accept-package-agreements --accept-source-agreements"
+      "name": "VirtualBox",
+      "category": "Virtualisation",
+      "description": "Virtualisation d’OS (machines virtuelles)",
+      "linux": ["sudo apt install -y virtualbox"],
+      "windows": ["winget install --id Oracle.VirtualBox --silent --accept-package-agreements --accept-source-agreements"],
+      "macos": ["brew install --cask virtualbox"]
     },
     {
       "name": "VSCode",
       "category": "Développement",
       "description": "Éditeur de code source extensible",
-      "linux": "sudo apt install -y code",
-      "windows": "winget install -e --id Microsoft.VisualStudioCode"
+      "linux": ["sudo apt install -y code"],
+      "windows": ["winget install -e --id Microsoft.VisualStudioCode"],
+      "macos": ["brew install --cask visual-studio-code"]
     },
     {
       "name": "Wine",
       "category": "Compatibilité",
       "description": "Exécuter des logiciels Windows sous Linux",
-      "linux": "sudo apt install -y wine",
-      "windows": ""
+      "linux": ["sudo apt install -y wine"],
+      "windows": [],
+      "macos": ["brew install --cask wine-stable"]
+    },
+    {
+      "name": "Google Chrome",
+      "category": "Navigateur",
+      "description": "Navigateur web rapide de Google",
+      "linux": [
+        "wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb",
+        "sudo apt install -y ./google-chrome-stable_current_amd64.deb"
+      ],
+      "windows": "winget install -e --id Google.Chrome",
+      "macos": "brew install --cask google-chrome"
+    },
+    {
+      "name": "Opera",
+      "category": "Navigateur",
+      "description": "Navigateur avec VPN et bloqueur de pub intégré",
+      "linux": [
+        "wget https://download.opera.com/download/get/?partner=www&opsys=Linux",
+        "sudo dpkg -i opera-stable_*.deb || sudo apt install -f"
+      ],
+      "windows": "winget install -e --id Opera.Opera",
+      "macos": "brew install --cask opera"
+    },
+    {
+      "name": "Tor Browser",
+      "category": "Navigateur",
+      "description": "Navigateur centré sur l’anonymat et la confidentialité",
+      "linux": "sudo apt install -y torbrowser-launcher",
+      "windows": "winget install -e --id TorProject.TorBrowser",
+      "macos": "brew install --cask tor-browser"
+    },
+    {
+      "name": "htop",
+      "category": "Outils",
+      "description": "Moniteur système interactif en ligne de commande",
+      "linux": "sudo apt install -y htop",
+      "windows": "",
+      "macos": "brew install htop"
+    },
+    {
+      "name": "Neofetch",
+      "category": "Outils",
+      "description": "Affiche des informations système dans le terminal",
+      "linux": "sudo apt install -y neofetch",
+      "windows": "",
+      "macos": "brew install neofetch"
+    },
+    {
+      "name": "BleachBit",
+      "category": "Outils",
+      "description": "Nettoyage système et confidentialité",
+      "linux": "sudo apt install -y bleachbit",
+      "windows": "winget install -e --id BleachBit.BleachBit",
+      "macos": "brew install --cask bleachbit"
+    },
+    {
+      "name": "Postman",
+      "category": "Développement",
+      "description": "Plateforme pour tester les APIs",
+      "linux": "sudo snap install postman",
+      "windows": "winget install -e --id Postman.Postman",
+      "macos": "brew install --cask postman"
+    },
+    {
+      "name": "Docker Compose",
+      "category": "Développement",
+      "description": "Outil pour définir et gérer des applications multi-conteneurs",
+      "linux": "sudo apt install -y docker-compose",
+      "windows": "",
+      "macos": "brew install docker-compose"
+    },
+    {
+      "name": "Java (OpenJDK 17)",
+      "category": "Développement",
+      "description": "Machine virtuelle Java et outils associés",
+      "linux": "sudo apt install -y openjdk-17-jdk",
+      "windows": "winget install -e --id EclipseAdoptium.Temurin.17.JDK",
+      "macos": "brew install openjdk@17"
+    },
+    {
+      "name": "PHP",
+      "category": "Développement",
+      "description": "Langage de script côté serveur",
+      "linux": "sudo apt install -y php",
+      "windows": "winget install -e --id PHP.PHP",
+      "macos": "brew install php"
+    },
+    {
+      "name": "Dropbox",
+      "category": "Cloud",
+      "description": "Stockage et synchronisation de fichiers en ligne",
+      "linux": "sudo apt install -y nautilus-dropbox",
+      "windows": "winget install -e --id Dropbox.Dropbox",
+      "macos": "brew install --cask dropbox"
+    },
+    {
+      "name": "rclone",
+      "category": "Cloud",
+      "description": "Gestion et synchronisation de fichiers cloud (Google Drive, etc.)",
+      "linux": "sudo apt install -y rclone",
+      "windows": "winget install -e --id Rclone.Rclone",
+      "macos": "brew install rclone"
+    },
+    {
+      "name": "MegaSync",
+      "category": "Cloud",
+      "description": "Client officiel de stockage MEGA",
+      "linux": [
+        "wget https://mega.nz/linux/repo/xUbuntu_20.04/amd64/megasync-xUbuntu_20.04_amd64.deb",
+        "sudo apt install -y ./megasync-xUbuntu_20.04_amd64.deb"
+      ],
+      "windows": "winget install -e --id Mega.MEGASync",
+      "macos": "brew install --cask megasync"
+    },
+    {
+      "name": "Spotify",
+      "category": "Multimédia",
+      "description": "Service de streaming musical",
+      "linux": [
+        "curl -sS https://download.spotify.com/debian/pubkey_0D811D58.gpg | sudo apt-key add -",
+        "echo 'deb http://repository.spotify.com stable non-free' | sudo tee /etc/apt/sources.list.d/spotify.list",
+        "sudo apt update",
+        "sudo apt install -y spotify-client"
+      ],
+      "windows": "winget install -e --id Spotify.Spotify",
+      "macos": "brew install --cask spotify"
+    },
+    {
+      "name": "Audacious",
+      "category": "Multimédia",
+      "description": "Lecteur audio léger et personnalisable",
+      "linux": "sudo apt install -y audacious",
+      "windows": "",
+      "macos": "brew install audacious"
+    },
+    {
+      "name": "HandBrake",
+      "category": "Multimédia",
+      "description": "Convertisseur vidéo libre",
+      "linux": "sudo apt install -y handbrake",
+      "windows": "winget install -e --id HandBrake.HandBrake",
+      "macos": "brew install --cask handbrake"
+    },
+    {
+      "name": "Slack",
+      "category": "Communication",
+      "description": "Messagerie d’équipe et collaboration",
+      "linux": "sudo snap install slack --classic",
+      "windows": "winget install -e --id SlackTechnologies.Slack",
+      "macos": "brew install --cask slack"
+    },
+    {
+      "name": "Telegram",
+      "category": "Communication",
+      "description": "Application de messagerie sécurisée et rapide",
+      "linux": "sudo snap install telegram-desktop",
+      "windows": "winget install -e --id Telegram.TelegramDesktop",
+      "macos": "brew install --cask telegram"
+    },
+    {
+      "name": "Zoom",
+      "category": "Communication",
+      "description": "Plateforme de visioconférence",
+      "linux": "sudo snap install zoom-client",
+      "windows": "winget install -e --id Zoom.Zoom",
+      "macos": "brew install --cask zoom"
+    },
+    {
+      "name": "Microsoft Teams",
+      "category": "Communication",
+      "description": "Collaboration et réunions vidéo par Microsoft",
+      "linux": "sudo snap install teams",
+      "windows": "winget install -e --id Microsoft.Teams",
+      "macos": "brew install --cask microsoft-teams"
+    },
+    {
+      "name": "Heroic Games Launcher",
+      "category": "Jeux",
+      "description": "Lanceur open-source pour Epic Games et GOG",
+      "linux": "sudo snap install heroic --edge",
+      "windows": "winget install -e --id HeroicGamesLauncher.HeroicGamesLauncher",
+      "macos": "brew install --cask heroic"
+    },
+    {
+      "name": "Itch.io",
+      "category": "Jeux",
+      "description": "Plateforme de jeux indépendants",
+      "linux": "sudo apt install -y itch",
+      "windows": "winget install -e --id ItchIo.Itch",
+      "macos": "brew install --cask itch"
+    },
+    {
+      "name": "BleachBit",
+      "category": "Sécurité",
+      "description": "Outil de nettoyage pour protéger la vie privée et libérer de l’espace disque.",
+      "linux": [
+        "sudo apt install -y bleachbit"
+      ],
+      "windows": [
+        "winget install --id BleachBit.BleachBit --silent --accept-package-agreements --accept-source-agreements"
+      ],
+      "macos": []
+    },
+    {
+      "name": "KeePassXC",
+      "category": "Sécurité",
+      "description": "Gestionnaire de mots de passe open-source et multiplateforme.",
+      "linux": [
+        "sudo apt install -y keepassxc"
+      ],
+      "windows": [
+        "winget install --id KeePassXCTeam.KeePassXC --silent --accept-package-agreements --accept-source-agreements"
+      ],
+      "macos": []
+    },
+    {
+      "name": "VeraCrypt",
+      "category": "Sécurité",
+      "description": "Logiciel de chiffrement de disques et de volumes.",
+      "linux": [
+        "sudo add-apt-repository ppa:unit193/encryption -y",
+        "sudo apt update",
+        "sudo apt install -y veracrypt"
+      ],
+      "windows": [
+        "winget install --id IDRIX.VeraCrypt --silent --accept-package-agreements --accept-source-agreements"
+      ],
+      "macos": []
+    },
+    {
+      "name": "OpenVPN",
+      "category": "Sécurité",
+      "description": "Logiciel VPN libre permettant de sécuriser la navigation.",
+      "linux": [
+        "sudo apt install -y openvpn"
+      ],
+      "windows": [
+        "winget install --id OpenVPNTechnologies.OpenVPN --silent --accept-package-agreements --accept-source-agreements"
+      ],
+      "macos": []
+    },
+    {
+      "name": "WireGuard",
+      "category": "Sécurité",
+      "description": "VPN moderne et performant, intégré au noyau Linux.",
+      "linux": [
+        "sudo apt install -y wireguard"
+      ],
+      "windows": [
+        "winget install --id WireGuard.WireGuard --silent --accept-package-agreements --accept-source-agreements"
+      ],
+      "macos": []
+    },
+    {
+      "name": "GnuPG",
+      "category": "Sécurité",
+      "description": "Outil de chiffrement et de signature pour les emails et fichiers.",
+      "linux": [
+        "sudo apt install -y gnupg"
+      ],
+      "windows": [
+        "winget install --id GnuPG.Gpg4win --silent --accept-package-agreements --accept-source-agreements"
+      ],
+      "macos": []
+    },
+    {
+      "name": "ClamAV",
+      "category": "Sécurité",
+      "description": "Antivirus libre pour analyser et détecter les menaces.",
+      "linux": [
+        "sudo apt install -y clamav clamav-daemon"
+      ],
+      "windows": [],
+      "macos": []
+    },
+    {
+      "name": "GUFW",
+      "category": "Sécurité",
+      "description": "Interface graphique pour configurer simplement le pare-feu UFW.",
+      "linux": [
+        "sudo apt install -y gufw"
+      ],
+      "windows": [],
+      "macos": []
+    },
+    {
+      "name": "Wireshark",
+      "category": "Sécurité",
+      "description": "Analyseur de paquets réseau pour diagnostic et sécurité.",
+      "linux": [
+        "sudo apt install -y wireshark"
+      ],
+      "windows": [
+        "winget install --id WiresharkFoundation.Wireshark --silent --accept-package-agreements --accept-source-agreements"
+      ],
+      "macos": []
+    },
+    {
+      "name": "Nmap",
+      "category": "Sécurité",
+      "description": "Outil de scan réseau open-source.",
+      "linux": [
+        "sudo apt install -y nmap"
+      ],
+      "windows": [
+        "winget install --id Insecure.Nmap --silent --accept-package-agreements --accept-source-agreements"
+      ],
+      "macos": []
+    },
+    {
+      "name": "Metasploit",
+      "category": "Sécurité",
+      "description": "Cadre d’exploitation et de tests de pénétration.",
+      "linux": [
+        "curl https://raw.githubusercontent.com/rapid7/metasploit-framework/master/msfinstall | sudo bash"
+      ],
+      "windows": [],
+      "macos": []
     }
   ]
 }
