@@ -953,7 +953,6 @@ function menuProfil {
 
 scriptInformation
 detecterOS
-detecterOSV2
 verifierInternet
 checkUpdate
 majSysteme
