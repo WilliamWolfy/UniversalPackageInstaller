@@ -347,6 +347,373 @@
     "en": "Y",
     "fr": "O"
   },
+  "Lang_your_choice":     "en": "Your choice:",
+    "fr": "Votre choix :"
+  },
+  "Lang_package_failed": {
+    "en": "Failed to install package",
+    "fr": "Échec de l'installation du paquet"
+  },
+  "Lang_success": {
+    "en": "✅ Success:",
+    "fr": "✅ Succès :"
+  },
+  "Lang_installing_profile": { 
+    "en": "Installing profile:",
+    "fr": "Installation du profil :" },
+  "Lang_profile_done": {
+    "en": "Profile done",
+    "fr": "Profil terminé" }
+}
+}{
+  "Lang_added_package_from_profile": {
+    "en": "Added unknown package to packages.json:",
+    "fr": "Paquet inconnu ajouté à packages.json :"
+  },
+  "Lang_available_packages": {
+    "en": "Available packages",
+    "fr": "Paquets disponibles"
+  },
+  "Lang_available_profiles": {
+    "en": "Available profiles",
+    "fr": "Profils disponibles"
+  },
+  "Lang_back": {
+    "en": "Back",
+    "fr": "Retour"
+  },
+  "Lang_by_profile": {
+    "en": "By profile",
+    "fr": "Par profil"
+  },
+  "Lang_cache_only": {
+    "en": "Cache only mode",
+    "fr": "Mode cache uniquement"
+  },
+  "Lang_cancel": {
+    "en": "Cancel",
+    "fr": "Annuler"
+  },
+  "Lang_check_internet": {
+    "en": "Checking internet...",
+    "fr": "Vérification d'internet..."
+  },
+  "Lang_choose_number": {
+    "en": "Choose number (0 to go back):",
+    "fr": "Choisissez un numéro (0 = retour) :"
+  },
+  "Lang_choose_packages": {
+    "en": "Enter package numbers or names (space separated, 0 to go back):",
+    "fr": "Entrez numéros ou noms (séparés par espaces, 0 = retour) :"
+  },
+  "Lang_confirm_delete": {
+    "en": "Confirm delete? (y/n)",
+    "fr": "Confirmer suppression ? (o/n)"
+  },
+  "Lang_confirm_overwrite": {
+    "en": "File exists: overwrite? (y/n)",
+    "fr": "Fichier existe : écraser ? (o/n)"
+  },
+  "Lang_continue_prompt": {
+    "en": "Continue? (y/n)",
+    "fr": "Continuer ? (o/n)"
+  },
+  "Lang_created_by": {
+    "en": "by",
+    "fr": "par"
+  },
+  "Lang_download_failed": {
+    "en": "Download failed:",
+    "fr": "Échec du téléchargement :"
+  },
+  "Lang_download_ok": {
+    "en": "Downloaded:",
+    "fr": "Téléchargé :"
+  },
+  "Lang_downloading": {
+    "en": "Downloading...",
+    "fr": "Téléchargement..."
+  },
+  "Lang_downloading_new_version": {
+    "en": "Downloading the new version",
+    "fr": "Téléchargement de la nouvelle version"
+  },
+  "Lang_enter_path_prompt": {
+    "en": "Enter full path to file to import:",
+    "fr": "Entrez le chemin complet du fichier à importer :"
+  },
+  "Lang_error": {
+    "en": "Error:",
+    "fr": "Erreur :"
+  },
+  "Lang_exit": {
+    "en": "Exit",
+    "fr": "Quitter"
+  },
+  "Lang_export_file": {
+    "en": "Export file",
+    "fr": "Exporter un fichier"
+  },
+  "Lang_export_packages": {
+    "en": "Export packages",
+    "fr": "Exporter paquets"
+  },
+  "Lang_file_not_found": {
+    "en": "File not found:",
+    "fr": "Fichier introuvable :"
+  },
+  "Lang_force_download": {
+    "en": "Force re-download",
+    "fr": "Forcer le re-téléchargement"
+  },
+  "Lang_import_file": {
+    "en": "Import file",
+    "fr": "Importer un fichier"
+  },
+  "Lang_import_list": {
+    "en": "Import list",
+    "fr": "Importer liste"
+  },
+  "Lang_input_empty": {
+    "en": "No input provided",
+    "fr": "Aucune entrée fournie"
+  },
+  "Lang_install_all_packages": {
+    "en": "Install all packages",
+    "fr": "Installer tous les paquets"
+  },
+  "Lang_install_commands": {
+    "en": "Execute install commands",
+    "fr": "Exécuter commandes d'installation"
+  },
+  "Lang_install_from_url": {
+    "en": "Install from URL",
+    "fr": "Installer depuis URL"
+  },
+  "Lang_install_profile": {
+    "en": "Install profile",
+    "fr": "Installer un profil"
+  },
+  "Lang_installing_package": {
+    "en": "Installing package:",
+    "fr": "Installation du paquet :"
+  },
+  "Lang_internet_fail": {
+    "en": "No internet detected",
+    "fr": "Aucun accès internet détecté"
+  },
+  "Lang_internet_ok": {
+    "en": "Internet OK",
+    "fr": "Internet OK"
+  },
+  "Lang_invalid_choice": {
+    "en": "Invalid choice.",
+    "fr": "Choix invalide."
+  },
+  "Lang_invalid_file": {
+    "en": "Invalid file format (expected .json or .csv)",
+    "fr": "Format invalide (attendu .json ou .csv)"
+  },
+  "Lang_invalid_number": {
+    "en": "Invalid number, try again.",
+    "fr": "Numéro invalide, réessayez."
+  },
+  "Lang_manage_file": {
+    "en": "Manage packages",
+    "fr": "Gérer paquets"
+  },
+  "Lang_manage_packages": {
+    "en": "Manage packages",
+    "fr": "Gérer paquets"
+  },
+  "Lang_menu_header": {
+    "en": "Universal Package Installer",
+    "fr": "Universal Package Installer"
+  },
+  "Lang_no": {
+    "en": "No",
+    "fr": "Non"
+  },
+  "Lang_no_jq": {
+    "en": "jq required for JSON",
+    "fr": "jq requis pour JSON"
+  },
+  "Lang_no_package_found": {
+    "en": "No packages found in",
+    "fr": "Aucun paquet trouvé dans"
+  },
+  "Lang_no_packages": {
+    "en": "No packages available.",
+    "fr": "Aucun paquet disponible."
+  },
+  "Lang_no_profiles": {
+    "en": "No profiles available.",
+    "fr": "Aucun profil disponible."
+  },
+  "Lang_no_short": {
+    "en": "N",
+    "fr": "N"
+  },
+  "Lang_no_updates": {
+    "en": "No updates found",
+    "fr": "Aucune mise à jour"
+  },
+  "Lang_ok": {
+    "en": "OK",
+    "fr": "OK"
+  },
+  "Lang_package_added": {
+    "en": "Package added",
+    "fr": "Paquet ajouté"
+  },
+  "Lang_package_deleted": {
+    "en": "Package deleted",
+    "fr": "Paquet supprimé"
+  },
+  "Lang_package_installed": {
+    "en": "Package installed",
+    "fr": "Paquet installé"
+  },
+  "Lang_package_modified": {
+    "en": "Package modified",
+    "fr": "Paquet modifié"
+  },
+  "Lang_package_not_found_json": {
+    "en": "Package not found in JSON:",
+    "fr": "Paquet non trouvé dans le JSON :"
+  },
+  "Lang_packages_count": {
+    "en": "%s package(s)",
+    "fr": "%s paquet(s)"
+  },
+  "Lang_packages_file_not_found": {
+    "en": "Packages file not found:",
+    "fr": "Fichier packages introuvable :"
+  },
+  "Lang_personalized": {
+    "en": "Personalized",
+    "fr": "Personnalisée"
+  },
+  "Lang_press_enter": {
+    "en": "Press Enter to continue...",
+    "fr": "Appuyez sur Entrée pour continuer..."
+  },
+  "Lang_profile_added": {
+    "en": "Profile added to profiles.json",
+    "fr": "Profil ajouté à profiles.json"
+  },
+  "Lang_profile_exported": {
+    "en": "Profile exported to",
+    "fr": "Profil exporté dans"
+  },
+  "Lang_profile_updated": {
+    "en": "Profile added/updated in profiles.json",
+    "fr": "Profil ajouté/mis à jour dans profiles.json"
+  },
+  "Lang_profiles_file_not_found": {
+    "en": "Profiles file not found:",
+    "fr": "Fichier profiles introuvable :"
+  },
+  "Lang_prompt_profile_filename": {
+    "en": "Enter export filename (default: %s):",
+    "fr": "Nom du fichier d'export (par défaut : %s) :"
+  },
+  "Lang_prompt_profile_name": {
+    "en": "Enter new profile name:",
+    "fr": "Entrez le nom du nouveau profil :"
+  },
+  "Lang_qcm_prompt": {
+    "en": "Choose from the list:",
+    "fr": "Choisissez dans la liste :"
+  },
+  "Lang_qf_prompt": {
+    "en": "Choose:",
+    "fr": "Choisissez :"
+  },
+  "Lang_qn_enter_number": {
+    "en": "Enter a number:",
+    "fr": "Entrez un nombre :"
+  },
+  "Lang_qn_invalid_number": {
+    "en": "Invalid number, try again.",
+    "fr": "Nombre invalide, réessayez."
+  },
+  "Lang_question_invalid": {
+    "en": "Invalid input, try again.",
+    "fr": "Entrée invalide, réessayez."
+  },
+  "Lang_return_menu": {
+    "en": "Returning to main menu...",
+    "fr": "Retour au menu principal..."
+  },
+  "Lang_select_at_least": {
+    "en": "Select at least %s item(s).",
+    "fr": "Sélectionnez au moins %s élément(s)."
+  },
+  "Lang_select_at_most": {
+    "en": "Select at most %s item(s).",
+    "fr": "Sélectionnez au plus %s élément(s)."
+  },
+  "Lang_select_exactly": {
+    "en": "Select exactly %s item(s).",
+    "fr": "Sélectionnez exactement %s élément(s)."
+  },
+  "Lang_select_package_prompt": {
+    "en": "Enter package number(s) (space separated, 0 to cancel):",
+    "fr": "Entrez numéro(s) de paquet (séparés par espaces, 0 = annuler) :"
+  },
+  "Lang_select_profile_prompt": {
+    "en": "Enter profile number(s) (space separated, 0 to cancel):",
+    "fr": "Entrez numéro(s) de profil (séparés par espaces, 0 = annuler) :"
+  },
+  "Lang_unable_check_version": {
+    "en": "Unable to check latest version",
+    "fr": "Impossible de vérifier la dernière version"
+  },
+  "Lang_update_available": {
+    "en": "New version available:",
+    "fr": "Nouvelle version disponible :"
+  },
+  "Lang_update_check": {
+    "en": "Cheking for updates",
+    "fr": "Vérification des mises à jour"
+  },
+  "Lang_update_done": {
+    "en": "Updated. Restarting...",
+    "fr": "Mise à jour effectuée. Redémarrage..."
+  },
+  "Lang_update_none": {
+    "en": "UPI is up to date (version %s)",
+    "fr": "UPI est à jour (version %s)"
+  },
+  "Lang_update_prompt": {
+    "en": "Update now? (y/n)",
+    "fr": "Mettre à jour maintenant ? (o/n)"
+  },
+  "Lang_updating_system": {
+    "en": "Updating system...",
+    "fr": "Mise à jour du système..."
+  },
+  "Lang_use_cache": {
+    "en": "Using cached file",
+    "fr": "Utilisation du cache"
+  },
+  "Lang_version": {
+    "en": "Version:",
+    "fr": "Version :"
+  },
+  "Lang_welcome": {
+    "en": "Welcome to",
+    "fr": "Bienvenue dans"
+  },
+  "Lang_yes": {
+    "en": "Yes",
+    "fr": "Oui"
+  },
+  "Lang_yes_short": {
+    "en": "Y",
+    "fr": "O"
+  },
   "Lang_your_choice": {
     "en": "Your choice:",
     "fr": "Votre choix :"
@@ -358,5 +725,33 @@
   "Lang_success": {
     "en": "✅ Success:",
     "fr": "✅ Succès :"
+  },
+  "Lang_installing_profile": {
+    "en": "Installing profile:",
+    "fr": "Installation du profil :" 
+  },
+  "Lang_profile_done":{
+    "en": "Profile done",
+    "fr": "Profil terminé"
+  },
+  "Lang_invalid_choice": {
+    "en": "Invalid choice.",
+    "fr": "Choix invalide."
+  },
+  "Lang_return_menu": {
+    "en": "Returning to main menu...",
+    "fr": "Retour au menu principal..."
+  },
+  "Lang_package_installed":{
+    "en": "Package installed",
+    "fr": "Paquet installé"
+  },
+  "Lang_package_failed": {
+    "en": "Failed to install package",
+    "fr": "Échec de l'installation du paquet"
+  },
+  "Lang_success": {
+    "en": "Success:",
+    "fr": "Succès :"
   }
 }
