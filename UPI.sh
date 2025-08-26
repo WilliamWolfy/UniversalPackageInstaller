@@ -54,7 +54,7 @@ load_language() {
 }
 
 function echoColor {
-  local couleur="$1"; shift
+  local color="$1"; shift
   local texte="$*"
   local defaut="\033[0m"
   declare -A c=(
@@ -62,8 +62,8 @@ function echoColor {
     ["jaune"]="\033[33m" ["bleu"]="\033[34m" ["magenta"]="\033[35m"
     ["cyan"]="\033[36m" ["blanc"]="\033[37m" ["defaut"]="\033[0m"
   )
-  if [[ -n "${c[$couleur]}" ]]; then
-    echo -e "${c[$couleur]}$texte$defaut"
+  if [[ -n "${c[$color]}" ]]; then
+    echo -e "${c[$color]}$texte$defaut"
   else
     echo -e "$texte"
   fi
@@ -72,25 +72,27 @@ function echoColor {
 function title {
   local texte="$1"
   local symbole="${2:--}"
-  local couleur="${3:-defaut}"
+  local color="${3:-defaut}"
   local long=$((${#texte} + 4))
   local separateur
   separateur="$(printf "%${long}s" | tr ' ' "$symbole")"
-  echoColor "$couleur" "$separateur"
-  echoColor "$couleur" "$symbole $texte $symbole"
-  echoColor "$couleur" "$separateur"
+  echoColor "$color" "$separateur"
+  echoColor "$color" "$symbole $texte $symbole"
+  echoColor "$color" "$separateur"
   echo ""
 }
 
 function echoInformation { echo ""; echoColor "jaune" "ℹ️  $*"; echo ""; }
 function echoCheck { echo ""; echoColor "vert" "✅ $*"; echo ""; }
 function echoError { echo ""; echoColor "rouge" "❌ $*"; echo ""; }
+function echoWarning { echo ""; echoColor "jaune" "⚠️ $*"; echo ""; }
 
 # ================================================================
 # Function: askQuestion
 # Handles different question types: Open (QO), Yes/No (QF), Multiple Choice (QCM), Number (QN)
 # Returns answer in variable: $response
 # ================================================================
+
 function askQuestion() {
     local prompt="$1"
     local qtype="${2:-QO}"
@@ -99,11 +101,11 @@ function askQuestion() {
     response=""
 
     case "$qtype" in
-        QO)  # Open question
+        QO) 
             read -rp "$prompt: " response
             ;;
 
-        QF)  # Yes/No question
+        QF) 
             local yes_list=("Y" "Yes" "O" "Oui" "1")
             local no_list=("N" "No" "Non" "2")
             local answer=""
@@ -123,7 +125,7 @@ function askQuestion() {
             done
             ;;
 
-        QCM) # Multiple choice question
+        QCM)
             local min=0 max=0
             local mod=""
             # Check if first argument is limit
@@ -171,7 +173,7 @@ function askQuestion() {
             response="${selected[*]}"
             ;;
 
-        QN) # Number question
+        QN)
             local min=${1:-}
             local max=${2:-}
             local number=""
@@ -204,10 +206,11 @@ function askQuestion() {
 # ================================================================
 
 function scriptInformation {
-  title "$Lang_welcome $scriptName ($scriptAlias)" "#" "bleu"
-  title "by $scriptCreator" "/" "blanc"
-  echoColor "rouge" "Version: $scriptVersion"
-  echo ""
+    clear
+    title "$Lang_welcome $scriptName ($scriptAlias)" "#" "bleu"
+    title "by $scriptCreator" "/" "blanc"
+    echoColor "rouge" "Version: $scriptVersion"
+    echo ""
 }
 
 # ================================================================
@@ -388,7 +391,7 @@ function managePackages {
     esac
 }
 
-telecharger() {
+download() {
     local url="$1"
     local sortie="$2"
 
@@ -430,7 +433,7 @@ function installerDepuisLien {
         case "$CACHE_MODE" in
             force)
                 echo "🔄 $Lang_downloading $url"
-                telecharger "$url" "$fichier"
+                download "$url" "$fichier"
                 ;;
             cache)
                 echoCheck "$Lang_using_cache"
@@ -439,14 +442,14 @@ function installerDepuisLien {
                 echo "📦 Le package '$nom' est déjà présent."
                 read -p "Voulez-vous le re-télécharger ? (o/n) " rep
                 if [[ "$rep" =~ ^[Oo]$ ]]; then
-                    telecharger "$url" "$fichier"
+                    download "$url" "$fichier"
                 else
                     echo "✅ Utilisation du fichier en cache"
                 fi
                 ;;
         esac
     else
-        telecharger "$url" "$fichier"
+        download "$url" "$fichier"
     fi
 
     # Décompression automatique pour archives
@@ -622,7 +625,7 @@ function exportPackages {
 
     # --- Étape 2 : Ajouter des packages supplémentaires
     echo
-    echo "📦 $Lang_list_package : "
+    echo "📦 ${Lang_available_packages} : "
     jq -r '.packages[].name' packages.json | nl -w2 -s". "
     read -p "👉 $Lang_select_number : " choixPkgs
 
@@ -757,50 +760,63 @@ function importPackages {
 function checkUpdate {
     # Déduire les URLs des JSON depuis url_script
     url_base="${url_script%/*}/"          # base : https://raw.githubusercontent.com/.../Prototype/
+    url_lang="${url_base}lang.json"
     url_packages="${url_base}packages.json"
     url_profiles="${url_base}profiles.json"
 
+    checkInternet
+
+    # Vérifier et télécharger lang.json si absent
+    if [[ ! -f "$LANG_FILE" ]]; then
+        echoWarning "${Lang_file_not_found:-File not found :} $LANG_FILE, ${Lang_downloading:-Downloading}..."
+        if download "$url_packages" "$LANG_FILE"; then
+            echoCheck "${Lang_download_ok:-Downloaded}$LANG_FILE."
+        else
+            echoError "${Lang_download_failed:-Download failed} $LANG_FILE"
+        fi
+    fi
+
     # Vérifier et télécharger packages.json si absent
     if [[ ! -f "$PACKAGES_FILE" ]]; then
-        echo "⚠️ $PACKAGES_FILE introuvable, téléchargement..."
-        if telecharger "$PACKAGES_FILE" "$url_packages"; then
-            echo "✅ $PACKAGES_FILE téléchargé."
+        echoWarning "${Lang_file_not_found:-File not found :} $PACKAGES_FILE, ${Lang_downloading:-Downloading}..."
+        if download "$url_packages" "$PACKAGES_FILE"; then
+            echoCheck "${Lang_download_ok:-Downloaded}$PACKAGES_FILE."
         else
-            echo "❌ Échec du téléchargement de $PACKAGES_FILE"
+            echoError "${Lang_download_failed:-Download failed} $PACKAGES_FILE"
         fi
     fi
 
     # Vérifier et télécharger profiles.json si absent
     if [[ ! -f "$PROFILES_FILE" ]]; then
-        echo "⚠️ $PROFILES_FILE introuvable, téléchargement..."
-        if telecharger "$url_packages" "$PROFILES_FILE"; then
-            echo "✅ $PROFILES_FILE téléchargé."
+        echoWarning "${Lang_file_not_found:-File not found :} $PROFILES_FILE ${Lang_downloading:-Downloading}..."
+        if download "$url_packages" "$PROFILES_FILE"; then
+            echoCheck "${Lang_download_ok:-Downloaded} $PROFILES_FILE"
         else
-            echo "❌ Échec du téléchargement de $PROFILES_FILE"
+            echoError "${Lang_download_failed:-Download failed} $PROFILES_FILE"
         fi
     fi
 
     # Vérification de la version du script
-    echo "🔎 Vérification des mises à jour..."
-    versionEnLigne="$(telecharger "$url_version")"
+    echo "🔎 ${Lang_update_check:-Cheking for update}"
+    versionEnLigne="$(download "$url_version")"
 
     if [[ -z "$versionEnLigne" ]]; then
-        echo "⚠️ Impossible de vérifier la dernière version."
+        echoWarning "${Lang_unable_check_version:-Unable to check latest version}"
         return
     fi
 
     if [[ "$versionEnLigne" != "$scriptVersion" ]]; then
-        echoColor "jaune" "⚠️ Nouvelle version : $versionEnLigne (actuelle : $scriptVersion)"
-        read -p "Voulez-vous mettre à jour maintenant ? (o/n) " rep
+        echoWarning "${Lang_update_available:-New version available} $versionEnLigne (actuelle : $scriptVersion)"
+        read -p "${Lang_update_prompt:-Update now ?} (o/n) " rep
         if [[ "$rep" =~ ^[Oo]$ ]]; then
-            echo "⬇️ Téléchargement de la nouvelle version..."
-            telecharger "$url_script" "$0"
+            echo "⬇️ ${Lang_downloading_new_version:-Downloading the new version}..."
+            download "$url_script" "$0"
             chmod +x "$0"
-            echo "✅ Mise à jour effectuée. Redémarrage..."
+            echoCheck "${Lang_update_done:-Updated. Restarting...}"
             exec "$0" "$@"   # Relance automatique du script
         fi
     else
-        echo "✅ UPI est déjà à jour (version $scriptVersion)"
+        echoCheck "${Lang_update_none:- UPI is up to date (version %s)}"
     fi
 }
 
@@ -810,6 +826,8 @@ function checkUpdate {
 
 function majSysteme {
     title "Mise à jour et vérification des dépendances" "=" "jaune"
+
+    checkInternet
 
     if [[ "$OS_FAMILY" == "Linux" ]]; then
         echo "🔄 Mise à jour du système Linux ($OS_DISTRO $OS_VERSION)..."
@@ -1107,7 +1125,6 @@ function menuProfile {
 load_language "fr"
 scriptInformation
 detecterOS
-checkInternet
 checkUpdate
 majSysteme
 chargerpackages
