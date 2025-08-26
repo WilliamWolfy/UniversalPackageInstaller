@@ -1,7 +1,15 @@
 {
+  "Lang_add": {
+    "en": "Add",
+    "fr": "Ajouter"
+  },
   "Lang_added_package_from_profile": {
     "en": "Added unknown package to packages.json:",
     "fr": "Paquet inconnu ajouté à packages.json :"
+  },
+  "Lang_added_unknown_package": {
+    "en": "Unknown package '%s' added to packages.json",
+    "fr": "Paquet inconnu ajouter à packages.json"
   },
   "Lang_available_packages": {
     "en": "Available packages",
@@ -31,6 +39,10 @@
     "en": "Checking internet...",
     "fr": "Vérification d'internet..."
   },
+  "Lang_choose_file": {
+    "en": "Choose file:",
+    "fr": "Choisissez un fichier :"
+  },
   "Lang_choose_number": {
     "en": "Choose number (0 to go back):",
     "fr": "Choisissez un numéro (0 = retour) :"
@@ -55,6 +67,14 @@
     "en": "by",
     "fr": "par"
   },
+  "Lang_custom_path": {
+    "en": "Enter a custom path",
+    "fr": "Entrez un chemin personnalisé"
+  },
+  "Lang_delete": {
+    "en": "Delete",
+    "fr": "Supprimer"
+  },
   "Lang_download_failed": {
     "en": "Download failed:",
     "fr": "Échec du téléchargement :"
@@ -70,6 +90,14 @@
   "Lang_downloading_new_version": {
     "en": "Downloading the new version",
     "fr": "Téléchargement de la nouvelle version"
+  },
+  "Lang_edit": {
+    "en": "Edit",
+    "fr": "Modifier"
+  },
+  "Lang_enter_full_path": {
+    "en": "Enter full path:",
+    "fr": "Entrer le chemin complet:"
   },
   "Lang_enter_path_prompt": {
     "en": "Enter full path to file to import:",
@@ -91,6 +119,14 @@
     "en": "Export packages",
     "fr": "Exporter paquets"
   },
+  "Lang_export_profile": {
+    "en": "Export profile",
+    "fr": "Eporter un profil"
+  },
+  "Lang_file_exported": {
+    "en": "File exported",
+    "fr": "Fichier exporté"
+  },
   "Lang_file_not_found": {
     "en": "File not found:",
     "fr": "Fichier introuvable :"
@@ -106,6 +142,10 @@
   "Lang_import_list": {
     "en": "Import list",
     "fr": "Importer liste"
+  },
+  "Lang_import_profile": {
+    "en": "Importing profile:",
+    "fr": "Importation du profil:"
   },
   "Lang_input_empty": {
     "en": "No input provided",
@@ -131,6 +171,10 @@
     "en": "Installing package:",
     "fr": "Installation du paquet :"
   },
+  "Lang_installing_packages": {
+    "en": "Installing packages from profile: %s",
+    "fr": "Installation des packages à partir du profil : %s"
+  },
   "Lang_installing_profile": {
     "en": "Installing profile:",
     "fr": "Installation du profil :"
@@ -155,6 +199,10 @@
     "en": "Invalid number, try again.",
     "fr": "Numéro invalide, réessayez."
   },
+  "Lang_list_profiles": {
+    "en": "List of profiles",
+    "fr": "Liste des profils"
+  },
   "Lang_manage_file": {
     "en": "Manage packages",
     "fr": "Gérer paquets"
@@ -174,6 +222,10 @@
   "Lang_no_jq": {
     "en": "jq required for JSON",
     "fr": "jq requis pour JSON"
+  },
+  "Lang_no_json_found": {
+    "en": "No JSON file found. Enter full path:",
+    "fr": "Aucun fichier JSON trouvé. Entrez le chemin complet :"
   },
   "Lang_no_package_found": {
     "en": "No packages found in",
@@ -267,6 +319,10 @@
     "en": "Enter new profile name:",
     "fr": "Entrez le nom du nouveau profil :"
   },
+  "Lang_promt_profile_add": {
+    "en": "Add this profile to profiles.json? (y/n)",
+    "fr": "Ajouter ce profil à profiles.json ? (o/n)"
+  },
   "Lang_qcm_prompt": {
     "en": "Choose from the list:",
     "fr": "Choisissez dans la liste :"
@@ -291,6 +347,10 @@
     "en": "Returning to main menu...",
     "fr": "Retour au menu principal..."
   },
+  "Lang_select_action": {
+    "en": "Select action :",
+    "fr": "Selectionner une action :"
+  },
   "Lang_select_at_least": {
     "en": "Select at least %s item(s).",
     "fr": "Sélectionnez au moins %s élément(s)."
@@ -302,6 +362,10 @@
   "Lang_select_exactly": {
     "en": "Select exactly %s item(s).",
     "fr": "Sélectionnez exactement %s élément(s)."
+  },
+  "Lang_select_file_import": {
+    "en": "Select file to import",
+    "fr": "Sélection du fichier à importer"
   },
   "Lang_select_package_prompt": {
     "en": "Enter package number(s) (space separated, 0 to cancel):",
@@ -366,5 +430,25 @@
   "Lang_your_choice": {
     "en": "Your choice:",
     "fr": "Votre choix :"
+  },
+  "Lang_name": {
+    "en": "Name",
+    "fr": "Nom"
+  },
+  "Lang_description": {
+    "en": "Description",
+    "fr": "Description"
+  },
+  "Lang_category": {
+    "en": "Category",
+    "fr": "Catégorie"
+  },
+  "Lang_command_line": {
+    "en": "Command line",
+    "fr": "Ligne de commande"
+  },
+  "Lang_prompt_new_package": {
+    "en": "Added a new package",
+    "fr": "Ajout d'un nouveau paquet"
   }
 }
