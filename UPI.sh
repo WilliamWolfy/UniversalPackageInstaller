@@ -42,7 +42,7 @@ function load_language {
 
     # Detect format (old: top-level "en"/"fr", new: top-level Lang_*)
     if jq -e 'has("en") and has("fr")' "$file" >/dev/null 2>&1; then
-        echo "ℹ️ Detected old lang.json format, converting..."
+        echo "ℹ️ Detected old lang.json format, congreening..."
 
         cp "$file" "$file.bak"
         tmp=$(mktemp)
@@ -83,37 +83,37 @@ function load_language {
 
 function echoColor {
   local color="$1"; shift
-  local texte="$*"
-  local defaut="\033[0m"
+  local text="$*"
+  local default="\033[0m"
   declare -A c=(
-    ["noir"]="\033[30m" ["rouge"]="\033[31m" ["vert"]="\033[32m"
-    ["jaune"]="\033[33m" ["bleu"]="\033[34m" ["magenta"]="\033[35m"
-    ["cyan"]="\033[36m" ["blanc"]="\033[37m" ["defaut"]="\033[0m"
+    ["black"]="\033[30m" ["red"]="\033[31m" ["green"]="\033[32m"
+    ["yellow"]="\033[33m" ["blue"]="\033[34m" ["magenta"]="\033[35m"
+    ["cyan"]="\033[36m" ["white"]="\033[37m" ["default"]="\033[0m"
   )
   if [[ -n "${c[$color]}" ]]; then
-    echo -e "${c[$color]}$texte$defaut"
+    echo -e "${c[$color]}$text$default"
   else
-    echo -e "$texte"
+    echo -e "$text"
   fi
 }
 
 function title {
-  local texte="$1"
+  local text="$1"
   local symbole="${2:--}"
-  local color="${3:-defaut}"
-  local long=$((${#texte} + 4))
-  local separateur
-  separateur="$(printf "%${long}s" | tr ' ' "$symbole")"
-  echoColor "$color" "$separateur"
-  echoColor "$color" "$symbole $texte $symbole"
-  echoColor "$color" "$separateur"
+  local color="${3:-default}"
+  local long=$((${#text} + 4))
+  local separator
+  separator="$(printf "%${long}s" | tr ' ' "$symbole")"
+  echoColor "$color" "$separator"
+  echoColor "$color" "$symbole $text $symbole"
+  echoColor "$color" "$separator"
   echo ""
 }
 
-function echoInformation { echo ""; echoColor "jaune" "ℹ️  $*"; echo ""; }
-function echoCheck { echo ""; echoColor "vert" "✅ $*"; echo ""; }
-function echoError { echo ""; echoColor "rouge" "❌ $*"; echo ""; }
-function echoWarning { echo ""; echoColor "jaune" "⚠️ $*"; echo ""; }
+function echoInformation { echo ""; echoColor "yellow" "ℹ️  $*"; echo ""; }
+function echoCheck { echo ""; echoColor "green" "✅ $*"; echo ""; }
+function echoError { echo ""; echoColor "red" "❌ $*"; echo ""; }
+function echoWarning { echo ""; echoColor "yellow" "⚠️ $*"; echo ""; }
 
 # ================================================================
 # Function: askQuestion
@@ -235,9 +235,9 @@ function askQuestion() {
 
 function scriptInformation {
     clear
-    title "$Lang_welcome $scriptName ($scriptAlias)" "#" "bleu"
-    title "by $scriptCreator" "/" "blanc"
-    echoColor "rouge" "Version: $scriptVersion"
+    title "$Lang_welcome $scriptName ($scriptAlias)" "#" "blue"
+    title "by $scriptCreator" "/" "white"
+    echoColor "red" "Version: $scriptVersion"
     echo ""
 }
 
@@ -589,7 +589,7 @@ function installPackage {
         return 0
     fi
 
-    title "📦 $Lang_installation : $package..." "+" "jaune"
+    title "📦 $Lang_installation : $package..." "+" "yellow"
 
     # Récupère URL ou commandes spécifiques
     local url
@@ -853,7 +853,7 @@ function checkUpdate {
 # ================================================================
 
 function majSysteme {
-    title "Mise à jour et vérification des dépendances" "=" "jaune"
+    title "Mise à jour et vérification des dépendances" "=" "yellow"
 
     checkInternet
 
@@ -1048,7 +1048,7 @@ function menuWhiptailProfil {
 
 function menu {
     while true; do
-        title "$scriptName" "W" "jaune"
+        title "$scriptName" "W" "yellow"
         echo "1) ${Lang_personalized:-Personalized}"
         echo "2) ${Lang_by_profile:-By profile}"
         echo "3) ${Lang_import_list:-Import list}"
