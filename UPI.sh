@@ -31,26 +31,54 @@ GUI="menu"
 # Utilitaires d'affichage
 # ================================================================
 
-load_language() {
-    local lang="$1"
+function load_language {
+    local file="$LANG_FILE"
+    local lang="$DEFAULT_LANG"
 
-    if [[ ! -f "$LANG_FILE" ]]; then
-        echo "❌ Fichier de langue introuvable: $LANG_FILE"
+    if [[ ! -f "$file" ]]; then
+        echo "❌ Missing language file: $file"
         return 1
     fi
 
-    # Charger toutes les clés Lang_ pour la langue choisie
-    while IFS="=" read -r key value; do
-        export "$key"="$value"
-    done < <(jq -r ".${lang} | to_entries[] | \"\(.key)=\(.value)\"" "$LANG_FILE")
+    # Detect format (old: top-level "en"/"fr", new: top-level Lang_*)
+    if jq -e 'has("en") and has("fr")' "$file" >/dev/null 2>&1; then
+        echo "ℹ️ Detected old lang.json format, converting..."
 
-    # Vérification des variables obligatoires
-    local required_keys=("Lang_welcome" "Lang_exit" "Lang_invalid_choice" "Lang_your_choice")
-    for rk in "${required_keys[@]}"; do
-        if [[ -z "${!rk}" ]]; then
-            echo "⚠️ Attention: clé manquante \"$rk\" dans la langue \"$lang\""
+        cp "$file" "$file.bak"
+        tmp=$(mktemp)
+
+        jq '
+          to_entries
+          | map(.key as $lang
+            | .value
+            | to_entries[]
+            | {key: (if (.key|startswith("Lang_")) then .key else "Lang_" + .key end),
+               lang: $lang,
+               value: .value})
+          | group_by(.key)
+          | map({ (.[0].key): (reduce .[] as $item ({}; .[$item.lang] = $item.value)) })
+          | add
+        ' "$file" > "$tmp"
+
+        if jq empty "$tmp" >/dev/null 2>&1; then
+            mv "$tmp" "$file"
+            echo "✅ Conversion successful (backup in $file.bak)"
+            jq -r 'keys[]' "$file"
+        else
+            echo "❌ Conversion failed, keeping original file."
+            rm -f "$tmp"
+            return 1
         fi
-    done
+    fi
+
+    # Load only selected language
+    while IFS="=" read -r key val; do
+        export "$key=$val"
+    done < <(jq -r --arg l "$lang" '
+        to_entries[]
+        | select(.value[$l] != null)
+        | "\(.key)=\(.value[$l])"
+    ' "$file")
 }
 
 function echoColor {
