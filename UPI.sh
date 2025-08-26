@@ -33,6 +33,7 @@ GUI="menuMain"
 
 # ================================================================
 # load_language
+# ----------------------------------------------------------------
 # EN: Load i18n strings from lang.json into environment variables.
 #     - Accepts two formats:
 #       A) “new” format (recommended): top-level keys are Lang_* and
@@ -141,11 +142,13 @@ function echoError { echo ""; echoColor "red" "❌ $*"; echo ""; }
 function echoWarning { echo ""; echoColor "yellow" "⚠️ $*"; echo ""; }
 
 # ================================================================
-# Function: askQuestion
-# Handles different question types: Open (QO), Yes/No (QF), Multiple Choice (QCM), Number (QN)
+# askQuestion
+# ----------------------------------------------------------------
+# FR : Gère différents types de questions : Ouvert (QO), Oui/Non (QF), Choix multiple (QCM), Nombre (QN)
+# Renvoie la réponse dans la variable : $response
+# EN : Handles different question types: Open (QO), Yes/No (QF), Multiple Choice (QCM), Number (QN)
 # Returns answer in variable: $response
 # ================================================================
-
 function askQuestion() {
     local prompt="$1"
     local qtype="${2:-QO}"
@@ -269,10 +272,16 @@ function scriptInformation {
 # FONCTIONS UTILITAIRES
 # ================================================================
 
+# ============================================================
+# detectOS
+# ------------------------------------------------------------
+# FR : Détection du système d'exploitation sur lequel le script s'éxécute.
+# EN : Detection of the operating system on which the script is running.
+# ============================================================
 function detectOS {
-    OS_FAMILY="Inconnu"
-    OS_DISTRO="Inconnu"
-    OS_VERSION="Inconnu"
+    OS_FAMILY="${Lang_unknown:-Unknown}"
+    OS_DISTRO="${Lang_unknown:-Unknown}"
+    OS_VERSION="${Lang_unknown:-Unknown}"
 
     case "$(uname -s)" in
         Linux*)
@@ -296,30 +305,35 @@ function detectOS {
             OS_VERSION=$(powershell -Command "(Get-ComputerInfo).WindowsVersion" 2>/dev/null | tr -d '\r')
             ;;
         *)
-            OS_FAMILY="Inconnu"
-            OS_DISTRO="Inconnu"
-            OS_VERSION="Inconnu"
+            OS_FAMILY="${Lang_unknown:-Unknown}"
+            OS_DISTRO="${Lang_unknown:-Unknown}"
+            OS_VERSION="${Lang_unknown:-Unknown}"
             ;;
     esac
 
     echoInformation "🖥️ OS : $OS_FAMILY / $OS_DISTRO / $OS_VERSION"
 }
 
-# Vérifier connexion internet
+# ============================================================
+# checkInternet
+# ------------------------------------------------------------
+# FR : Vérifie que la connexion internet soit disponible.
+# EN : Check that the internet connection is available.
+# ============================================================
 function checkInternet {
-  echo "🔎 ${Lang_check_internet}..."
+  echo "🔎 ${Lang_check_internet:-Checking internet...}"
   if command -v curl >/dev/null 2>&1; then
     if curl -I -m 5 -s https://github.com >/dev/null; then
-      echoCheck "${Lang_internet_ok}."
+      echoCheck "${Lang_internet_ok:-Internet OK}."
       return 0
     fi
   fi
   # fallback ping (Linux: -c ; Windows: -n)
   if ping -c 1 github.com >/dev/null 2>&1 || ping -n 1 github.com >/dev/null 2>&1; then
-    echoCheck "${Lang_internet_ok}."
+    echoCheck "${Lang_internet_ok:-Internet OK}."
     return 0
   fi
-  echoError "${Lang_internet_fail}."
+  echoError "${Lang_internet_fail:-No internet detected}."
   exit 1
 }
 
@@ -329,7 +343,7 @@ function loadPackages {
         echoError "$Lang_file_not_found : $PACKAGES_FILE"
         exit 1
     fi
-    mapfile -t listepackages < <(jq -r '.packages[].name' "$PACKAGES_FILE" | sort)
+    mapfile -t listPackages < <(jq -r '.packages[].name' "$PACKAGES_FILE" | sort)
 }
 
 # Charger un profil prédéfini depuis JSON
@@ -347,24 +361,33 @@ function arrayToJson() {
     printf '%s\n' "${arr[@]}" | jq -R . | jq -s .
 }
 
+# ============================================================
+# managePackages
+# ------------------------------------------------------------
+# FR : Gérer l'ajout, la modification ou la suppression de paquets
+# EN : Manage adding, editing, or deleting packages
+# ============================================================
 function managePackages {
     local package="$1"
     local action=""
 
-    title "Manage Packages"
+    # --- Display title
+    title "${Lang_manage_packages:-Manage Packages}"
 
+    # --- If no package provided, ask user for action
     if [[ -z "$package" ]]; then
-        PS3="${Lang_select_action:-Select action :}"
+        PS3="${Lang_select_action:-Select action: }"
         select action in "${Lang_add:-Add}" "${Lang_edit:-Edit}" "${Lang_delete:-Delete}" "${Lang_cancel:-Cancel}"; do
             case $REPLY in
                 1) action="add"; break ;;
                 2) action="edit"; break ;;
                 3) action="delete"; break ;;
                 4) return ;;
-                *) echoError "${Lang_invalid_choice:-Invalid choice}" ;;
+                *) echoError "${Lang_invalid_choice:-❌ Invalid choice}" ;;
             esac
         done
     else
+        # If package exists, default to edit, otherwise to add
         if jq -e --arg name "$package" '.packages[] | select(.name==$name)' "$PACKAGES_FILE" >/dev/null 2>&1; then
             action="edit"
         else
@@ -372,17 +395,17 @@ function managePackages {
         fi
     fi
 
-    # Si modification ou suppression, afficher une liste pour choisir le package
+    # --- If editing or deleting, show a list of packages
     if [[ "$action" == "edit" || "$action" == "delete" ]]; then
         mapfile -t package_list < <(jq -r '.packages[].name' "$PACKAGES_FILE")
-        echo "📦 $available_packages :"
-        select package in "${package_list[@]}" "Annuler"; do
+        echoInformation "📦 ${Lang_available_packages:-Available packages}:"
+        select package in "${package_list[@]}" "${Lang_cancel:-Cancel}"; do
             if [[ "$REPLY" -ge 1 && "$REPLY" -le "${#package_list[@]}" ]]; then
                 break
             elif [[ "$REPLY" -eq $(( ${#package_list[@]} + 1 )) ]]; then
                 return
             else
-                echoError "${Lang_invalid_choice:-Invalid choice}"
+                echoError "${Lang_invalid_choice:-❌ Invalid choice}"
             fi
         done
     fi
@@ -390,23 +413,27 @@ function managePackages {
     case $action in
         delete)
             jq --arg name "$package" 'del(.packages[] | select(.name==$name))' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
-            echo "🗑️ ${Lang_package_deleted:-Package deleted} '$package'."
+            echoCheck "🗑️ $(printf "${Lang_package_deleted:-Package deleted: %s}" "$package")"
             ;;
         edit)
-            echo "✏️ ${Lang_package_modified:-Package modified} '$package' :"
-            read -p "Nouvelle description (laisser vide pour conserver) : " new_description
-            read -p "Nouvelle catégorie (laisser vide pour conserver) : " new_category
+            echoInformation "✏️ $(printf "${Lang_package_modified:-Editing package: %s}" "$package")"
+
+            read -p "${Lang_new_description:-New description (leave empty to keep current)} : " new_description
+            read -p "${Lang_new_category:-New category (leave empty to keep current)} : " new_category
+
             [[ -n "$new_description" ]] && jq --arg name "$package" --arg desc "$new_description" \
                 '(.packages[] | select(.name==$name).description) |= $desc' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
+
             [[ -n "$new_category" ]] && jq --arg name "$package" --arg cat "$new_category" \
                 '(.packages[] | select(.name==$name).category) |= $cat' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
 
             for os in linux windows macos; do
-                echo "🖥️ Commandes existantes pour $os :"
+                echoInformation "🖥️ $(printf "${Lang_existing_commands:-Existing commands for %s}" "$os")"
                 mapfile -t current_cmds < <(jq -r --arg name "$package" --arg os "$os" \
                     '.packages[] | select(.name==$name) | .[$os] // [] | if type=="array" then .[] else . end' "$PACKAGES_FILE")
                 for c in "${current_cmds[@]}"; do echo " - $c"; done
-                read -p "Ajouter une commande pour $os (laisser vide pour passer) : " cmd
+
+                read -p "$(printf "${Lang_add_command:-Add a command for %s (leave empty to skip)} : " "$os")" cmd
                 if [[ -n "$cmd" ]]; then
                     jq --arg name "$package" --arg os "$os" --arg cmd "$cmd" \
                         '(.packages[] | select(.name==$name) | .[$os]) += [$cmd]' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
@@ -414,7 +441,7 @@ function managePackages {
             done
             ;;
         add)
-            echo "➕ ${Lang_prompt_new_package:-Added a new package} :"
+            echoInformation "➕ ${Lang_prompt_new_package:-Adding a new package}:"
             read -p "${Lang_name:-Name} : " name
             package="$name"
             read -p "${Lang_description:-Description} : " description
@@ -424,11 +451,13 @@ function managePackages {
             declare -a windows_cmds=()
             declare -a macos_cmds=()
 
-            read -p "${Lang_command_line:-Command line} Linux (séparées par ';', laisser vide si aucune) : " input
+            read -p "${Lang_command_line_linux:-Linux command line (separated by ';', empty if none)} : " input
             [[ -n "$input" ]] && IFS=';' read -r -a linux_cmds <<< "$input"
-            read -p "${Lang_command_line:-Command line} Windows (séparées par ';', laisser vide si aucune) : " input
+
+            read -p "${Lang_command_line_windows:-Windows command line (separated by ';', empty if none)} : " input
             [[ -n "$input" ]] && IFS=';' read -r -a windows_cmds <<< "$input"
-            read -p "${Lang_command_line:-Command line} macOS (séparées par ';', laisser vide si aucune) : " input
+
+            read -p "${Lang_command_line_macos:-macOS command line (separated by ';', empty if none)} : " input
             [[ -n "$input" ]] && IFS=';' read -r -a macos_cmds <<< "$input"
 
             linux_json=$(arrayToJson "${linux_cmds[@]}")
@@ -440,11 +469,17 @@ function managePackages {
                '.packages += [{"name":$name,"category":$cat,"description":$desc,"linux":$linux,"windows":$windows,"macos":$macos}]' \
                "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
 
-            echoCheck "${Lang_package_added:-Package added} : '$package'."
+            echoCheck "✅ $(printf "${Lang_package_added:-Package added: %s}" "$package")"
             ;;
     esac
 }
 
+# ============================================================
+# download
+# ------------------------------------------------------------
+# FR : Fonction de téléchargement utilisant la commande approprié par rapport au système.
+# EN : Download function using the appropriate command in relation to the system.
+# ============================================================
 download() {
     local url="$1"
     local sortie="$2"
@@ -466,7 +501,13 @@ download() {
     fi
 }
 
-function installerDepuisLien {
+# ============================================================
+# installFromLink
+# ------------------------------------------------------------
+# FR : Installation des paquets depuis un lien internet.
+# EN : Installation of packages from an internet link.
+# ============================================================
+function installFromLink {
     local url="$1"
     local nom="$(basename "$url")"
     local dossier_cache="$(dirname "$0")/packages/$OS_FAMILY"
@@ -486,19 +527,19 @@ function installerDepuisLien {
     if [[ -f "$file" ]]; then
         case "$CACHE_MODE" in
             force)
-                echo "🔄 $Lang_downloading $url"
+                echo "🔄 ${Lang_downloading:-Downloading from} $url"
                 download "$url" "$file"
                 ;;
             cache)
-                echoCheck "$Lang_using_cache"
+                echoCheck "${Lang_using_cache:-Using cache}"
                 ;;
             *)
-                echo "📦 Le package '$nom' est déjà présent."
-                read -p "Voulez-vous le re-télécharger ? (o/n) " rep
-                if [[ "$rep" =~ ^[Oo]$ ]]; then
+                echo "📦 $(printf "${Lang_already_present:-Package '%s' is already present.}" "$nom")"
+                read -p "${Lang_redownload_prompt:-Do you want to re-download it? (y/n)}" rep
+                if [[ "$rep" =~ ^[OoYy]$ ]]; then
                     download "$url" "$file"
                 else
-                    echo "✅ Utilisation du file en cache"
+                    echo "${Lang_using_cached_file:-Using cached file}"
                 fi
                 ;;
         esac
@@ -510,7 +551,7 @@ function installerDepuisLien {
     local unpack_dir="$dossier_cache/unpacked"
     mkdir -p "$unpack_dir"
     case "$file" in
-        *.zip) unzip -o "$file" -d "$unpack_dir" ;;
+        *.zip) echo "${Lang_install_zip:-➡️ Extracting ZIP}"; unzip -o "$file" -d "$unpack_dir" ;;
         *.tar.gz|*.tgz) tar -xzf "$file" -C "$unpack_dir" ;;
         *.tar.xz) tar -xJf "$file" -C "$unpack_dir" ;;
     esac
@@ -519,16 +560,17 @@ function installerDepuisLien {
     case "$OS_FAMILY" in
         Linux)
             if [[ "$file" =~ \.deb$ ]]; then
-                echo "➡️ Installation .deb"
+                echo "${Lang_install_deb:-➡️ Installing .deb package}"
                 sudo dpkg -i "$file" 2>/dev/null || sudo apt-get install -f -y
             elif [[ "$file" =~ \.rpm$ ]]; then
-                echo "➡️ Installation .rpm"
+                echo "${Lang_install_rpm:-➡️ Installing .rpm package}"
                 if command -v dnf >/dev/null 2>&1; then
                     sudo dnf install -y "$file" || sudo yum localinstall -y "$file"
                 else
                     sudo yum localinstall -y "$file"
                 fi
             elif [[ "$file" =~ \.AppImage$ ]]; then
+                echo "${Lang_install_appimage:-➡️ Installing AppImage}"
                 chmod +x "$file"
                 sudo mv "$file" /usr/local/bin/
             elif [[ -x "$file" ]]; then
@@ -537,31 +579,42 @@ function installerDepuisLien {
             ;;
         Windows)
             if [[ "$file" =~ \.exe$ ]]; then
+                echo "${Lang_install_exe:-➡️ Installing Windows executable}"
                 "$file" /quiet /norestart || "$file"
             elif [[ "$file" =~ \.msi$ ]]; then
+                echo "${Lang_install_msi:-➡️ Installing MSI package}"
                 msiexec /i "$file" /quiet /norestart
             elif [[ "$file" =~ \.zip$ ]]; then
+                echo "${Lang_install_zip:-➡️ Extracting ZIP}"
                 unzip -o "$file" -d "$HOME/AppData/Local/"
             fi
             ;;
         MacOS)
             if [[ "$file" =~ \.dmg$ ]]; then
+                echo "${Lang_install_dmg:-➡️ Mounting and installing DMG}"
                 mkdir -p "$dossier_cache/mnt"
                 hdiutil attach "$file" -mountpoint "$dossier_cache/mnt"
                 cp -r "$dossier_cache/mnt"/*.app /Applications/
                 hdiutil detach "$dossier_cache/mnt"
             elif [[ "$file" =~ \.pkg$ ]]; then
+                echo "${Lang_install_pkg:-➡️ Installing PKG package}"
                 sudo installer -pkg "$file" -target /
             elif [[ "$file" =~ \.zip$ ]]; then
+                echo "${Lang_install_zip:-➡️ Extracting ZIP}"
                 unzip -o "$file" -d /Applications/
             fi
             ;;
     esac
 
-    echoCheck "$Lang_install_success : $nom"
+    echoCheck "${Lang_install_success:-Successfully installed} : $nom"
 }
 
-# Installer un package
+# ============================================================
+# installPackage
+# ------------------------------------------------------------
+# FR : Installation des paquets selectionné par l'utilisateur.
+# EN : Installation of user-selected packages.
+# ============================================================
 function installPackage {
     local package="$1"
 
@@ -638,7 +691,7 @@ function installPackage {
     # Téléchargement si URL
     if [[ -n "$url" && "$url" != "null" ]]; then
         echo "🌍 $Lang_downloading : $url"
-        installerDepuisLien "$url"
+        installFromLink "$url"
     fi
 
     # Exécution des commandes spécifiques
@@ -653,10 +706,15 @@ function installPackage {
     echoCheck "$Lang_install_success : $package"
 }
 
-# ================================================================
+# ============================================================
 # IMPORT / EXPORT
-# ================================================================
-
+# ============================================================
+# ============================================================
+# exportPackages
+# ------------------------------------------------------------
+# FR : Exporter un profil de paquets depuis un fichier JSON.
+# EN : Export a package profile from a JSON file.
+# ============================================================
 function exportPackages {
     title "${Lang_export_profile:-Export profile}" "*" "cyan"
 
@@ -810,10 +868,12 @@ function importPackages {
     done
 }
 
-# ================================================================
-# MISE A JOUR AUTO
-# ================================================================
-
+# ============================================================
+# checkUpdate
+# ------------------------------------------------------------
+# FR : Vérifie les mise à jour disponible du script.
+# EN : Checks for available script updates.
+# ============================================================
 function checkUpdate {
     # Déduire les URLs des JSON depuis url_script
     url_base="${url_script%/*}/"          # base : https://raw.githubusercontent.com/.../Prototype/
@@ -877,11 +937,13 @@ function checkUpdate {
     fi
 }
 
-# ================================================================
-# Mise à jour système
-# ================================================================
-
-function majSysteme {
+# ============================================================
+# updateSystem
+# ------------------------------------------------------------
+# FR : Vérifie les mise à jour disponible du système.
+# EN : Checks for available system updates.
+# ============================================================
+function updateSystem {
     title "Mise à jour et vérification des dépendances" "=" "yellow"
 
     checkInternet
@@ -1077,6 +1139,7 @@ function menuWhiptailProfil {
 
 # ================================================================
 # menuMain
+#-----------------------------------------------------------------
 # EN: Text menu using i18n strings and display helpers.
 # FR : Menu texte utilisant les chaînes i18n et les helpers d’affichage.
 # ================================================================
@@ -1143,6 +1206,7 @@ function menuCustom {
 
 # ================================================================
 # menuProfile
+#-----------------------------------------------------------------
 # EN: Show available profiles (numbered), let user choose by number.
 #     - 0 returns to previous menu
 #     - loops on invalid input
@@ -1208,6 +1272,5 @@ load_language "fr"
 scriptInformation
 detectOS
 checkUpdate
-majSystem
-loadPackages
+updateSystem
 eval "$GUI"
