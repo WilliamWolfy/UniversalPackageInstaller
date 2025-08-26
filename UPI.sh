@@ -25,60 +25,85 @@ DEFAULT_LANG="fr"
 PACKAGES_FILE="packages.json"
 PROFILES_FILE="profiles.json"
 
-GUI="menu"
+GUI="menuMain"
 
 # ================================================================
 # Utilitaires d'affichage
 # ================================================================
 
+# ================================================================
+# load_language
+# EN: Load i18n strings from lang.json into environment variables.
+#     - Accepts two formats:
+#       A) “new” format (recommended): top-level keys are Lang_* and
+#          each key maps to an object of languages: { "Lang_foo": { "en": "...", "fr": "..." } }
+#       B) “old” format: top-level languages then keys:
+#          { "en": { "Lang_foo": "..." }, "fr": { "Lang_foo": "..." } }
+#     - Auto-converts (B) -> (A) if needed.
+#     - Ensures ALL keys are prefixed with "Lang_" (auto-rewrite file if not).
+#     - Loads ONLY the selected language, with fallback to "en" then "fr".
+#
+# FR : Charge les chaînes i18n depuis lang.json dans des variables.
+#      - Accepte deux formats (nouveau et ancien), convertit si nécessaire.
+#      - Garantit le préfixe "Lang_" pour toutes les clés.
+#      - Ne charge que la langue choisie, avec retombée sur "en" puis "fr".
+# ================================================================
+# Function to load and normalize language file
 function load_language {
-    local file="$LANG_FILE"
-    local lang="$DEFAULT_LANG"
+    local lang_file="lang.json"
+    local temp_file="lang.tmp.json"
+    local backup_file="lang.json.bak"
 
-    if [[ ! -f "$file" ]]; then
-        echo "❌ Missing language file: $file"
-        return 1
-    fi
+    [[ ! -f "$lang_file" ]] && { echo "❌ $lang_file missing"; return 1; }
 
-    # Detect format (old: top-level "en"/"fr", new: top-level Lang_*)
-    if jq -e 'has("en") and has("fr")' "$file" >/dev/null 2>&1; then
-        echo "ℹ️ Detected old lang.json format, congreening..."
+    # Backup before modification
+    cp "$lang_file" "$backup_file"
 
-        cp "$file" "$file.bak"
-        tmp=$(mktemp)
+    # Step 1: normalize keys (ensure Lang_ prefix)
+    jq 'to_entries
+        | map(
+            { 
+              key: (if (.key | startswith("Lang_")) then .key else "Lang_" + .key end), 
+              value: .value 
+            }
+          )
+        | from_entries' "$lang_file" > "$temp_file"
 
-        jq '
-          to_entries
-          | map(.key as $lang
-            | .value
-            | to_entries[]
-            | {key: (if (.key|startswith("Lang_")) then .key else "Lang_" + .key end),
-               lang: $lang,
-               value: .value})
-          | group_by(.key)
-          | map({ (.[0].key): (reduce .[] as $item ({}; .[$item.lang] = $item.value)) })
-          | add
-        ' "$file" > "$tmp"
+    mv "$temp_file" "$lang_file"
 
-        if jq empty "$tmp" >/dev/null 2>&1; then
-            mv "$tmp" "$file"
-            echo "✅ Conversion successful (backup in $file.bak)"
-            jq -r 'keys[]' "$file"
-        else
-            echo "❌ Conversion failed, keeping original file."
-            rm -f "$tmp"
-            return 1
-        fi
-    fi
+    # Step 2: detect duplicates and merge preferring richest entry
+    jq 'to_entries
+        | group_by(.key)
+        | map(
+            if length == 1 then .[0]
+            else
+                # Choose the entry with the most languages
+                (.[]
+                 | {key: .key, value: .value}
+                ) as $all
+                | reduce $all as $item (
+                    {key: .[0].key, value: {}};
+                    if ($item.value | length) > (.value | length)
+                    then .value = $item.value
+                    else .
+                    end
+                )
+            end
+        )
+        | from_entries' "$lang_file" > "$temp_file"
 
-    # Load only selected language
+    mv "$temp_file" "$lang_file"
+
+    echo "✅ $lang_file normalized and cleaned (backup in $backup_file)"
+
+    # Step 3: load variables into bash
+    local lang="${LANGUAGE:-fr}"
     while IFS="=" read -r key val; do
-        export "$key=$val"
-    done < <(jq -r --arg l "$lang" '
-        to_entries[]
-        | select(.value[$l] != null)
-        | "\(.key)=\(.value[$l])"
-    ' "$file")
+        # Remove quotes
+        val="${val%\"}"
+        val="${val#\"}"
+        export "$key"="$val"
+    done < <(jq -r --arg l "$lang" 'to_entries | map("\(.key)=\(.value[$l] // .value["en"])") | .[]' "$lang_file")
 }
 
 function echoColor {
@@ -228,7 +253,6 @@ function askQuestion() {
     esac
 }
 
-
 # ================================================================
 # Infos script
 # ================================================================
@@ -245,7 +269,7 @@ function scriptInformation {
 # FONCTIONS UTILITAIRES
 # ================================================================
 
-function detecterOS {
+function detectOS {
     OS_FAMILY="Inconnu"
     OS_DISTRO="Inconnu"
     OS_VERSION="Inconnu"
@@ -300,7 +324,7 @@ function checkInternet {
 }
 
 # Charger les packages disponibles depuis JSON
-function chargerpackages {
+function loadPackages {
     if [[ ! -f "$PACKAGES_FILE" ]]; then
         echoError "$Lang_file_not_found : $PACKAGES_FILE"
         exit 1
@@ -897,7 +921,7 @@ function majSysteme {
         if command -v whiptail >/dev/null 2>&1; then
             GUI="menuWhiptail"
         else
-            GUI="menu"
+            GUI="menuMain"
         fi
 
     elif [[ "$OS_FAMILY" == "macOS" ]]; then
@@ -909,7 +933,7 @@ function majSysteme {
         brew update
         brew upgrade
         brew install jq wget curl
-        GUI="menu"
+        GUI="menuMain"
 
     elif [[ "$OS_FAMILY" == "Windows" ]]; then
         echo "🔄 Mise à jour Windows ($OS_DISTRO $OS_VERSION)..."
@@ -1046,30 +1070,36 @@ function menuWhiptailProfil {
     done
 }
 
-function menu {
-    while true; do
-        title "$scriptName" "W" "yellow"
-        echo "1) ${Lang_personalized:-Personalized}"
-        echo "2) ${Lang_by_profile:-By profile}"
-        echo "3) ${Lang_import_list:-Import list}"
-        echo "4) ${Lang_export_packages:-Export packages}"
-        echo "5) ${Lang_manage_packages:-Manage packages}"
-        echo "0) ${Lang_exit:-Exit}"
-        echo ""
-        read -p "${Lang_your_choice:-Your choice}" choice
-        case "$choice" in
-            1) menuPersonnalise ;;
-            2) menuProfile ;;
-            3) importPackages ;;
-            4) exportPackages ;;
-            5) managePackages ;;
-            0) exit ;;
-            *) echoError "${Lang_invalid_choice:-Invalid choice}" ;;
-        esac
-    done
+# ================================================================
+# menuMain
+# EN: Text menu using i18n strings and display helpers.
+# FR : Menu texte utilisant les chaînes i18n et les helpers d’affichage.
+# ================================================================
+function menuMain() {
+  while true; do
+    title "$scriptName" "W" "yellow"
+    echo "1) ${Lang_personalized:-Personalized}"
+    echo "2) ${Lang_by_profile:-By profile}"
+    echo "3) ${Lang_import_list:-Import list}"
+    echo "4) ${Lang_export_packages:-Export packages}"
+    echo "5) ${Lang_manage_packages:-Manage packages}"
+    echo "0) ${Lang_exit:-Exit}"
+    echo ""
+
+    read -rp "${Lang_your_choice:-Your choice}: " _sel
+    case "$_sel" in
+      1) menuCustom ;;      # (ou menuPersonnalise si tu n’as pas encore renommé)
+      2) menuProfile ;;
+      3) importPackages ;;
+      4) exportPackages ;;
+      5) managePackages ;;
+      0) return 0 ;;
+      *) echoError "${Lang_invalid_choice:-Invalid choice}" ;;
+    esac
+  done
 }
 
-function menuPersonnalise {
+function menuCustom {
     if [[ ! -f "$PACKAGES_FILE" ]]; then
         echoError "${Lang_file_not_found:-File not found}: $PACKAGES_FILE"
         return 1
@@ -1106,44 +1136,63 @@ function menuPersonnalise {
     done
 }
 
-function menuProfile {
-    if [[ ! -f "$PROFILES_FILE" ]]; then
-        echoError "${Lang_profile_not_found:-File not found}: $PROFILES_FILE"
-        return 1
-    fi
+# ================================================================
+# menuProfile
+# EN: Show available profiles (numbered), let user choose by number.
+#     - 0 returns to previous menu
+#     - loops on invalid input
+# FR : Affiche les profils (numérotés), choix par numéro.
+#      - 0 pour revenir en arrière
+#      - boucle si saisie invalide
+# ================================================================
+function menuProfile() {
+  if [[ ! -f "$PROFILES_FILE" ]]; then
+    echoError "${Lang_profile_not_found:-Profile file not found}: $PROFILES_FILE"
+    return 1
+  fi
 
-    mapfile -t profiles < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILES_FILE" | sort -t'|' -k1,1)
-    (( ${#profiles[@]} == 0 )) && { echoError "${Lang_no_profiles:-No profiles available}"; return 1; }
+  # Build "name|count" list, sorted by name
+  mapfile -t _profiles < <(jq -r '.profiles | to_entries[] | "\(.key)|\(.value|length)"' "$PROFILES_FILE" | sort -t'|' -k1,1)
+  (( ${#_profiles[@]} == 0 )) && { echoError "${Lang_no_profiles:-No profiles available}"; return 1; }
 
-    while true; do
-        echo ""
-        title "${Lang_available_profiles:-Available profiles}" "-" "cyan"
-        for i in "${!profiles[@]}"; do
-            IFS='|' read -r name count <<< "${profiles[$i]}"
-            printf "%2d) %s (%s)\n" $((i+1)) "$name" "$(printf "${Lang_packages_count:-%s package(s)}" "$count")"
-        done
-        echo " 0) ${Lang_back:-Back to menu}"
-        echo ""
+  while true; do
+    echo ""
+    title "${Lang_available_profiles:-Available profiles}" "-" "cyan"
 
-        read -p "${Lang_choose_number:-Choose number (0 to go back): }" choice
-        [[ "$choice" == "0" ]] && return 0
-
-        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >=1 && choice <= ${#profiles[@]} )); then
-            idx=$((choice - 1))
-            IFS='|' read -r selected _ <<< "${profiles[$idx]}"
-            mapfile -t packages < <(jq -r --arg p "$selected" '.profiles[$p][]?' "$PROFILES_FILE")
-            if ((${#packages[@]} == 0)); then
-                echoError "${Lang_no_package_found:-No packages found} « $selected »"
-                continue
-            fi
-            for pkg in "${packages[@]}"; do
-                installPackage "$pkg"
-            done
-            return 0
-        else
-            echoError "${Lang_invalid_number:-Invalid number, try again}"
-        fi
+    for i in "${!_profiles[@]}"; do
+      IFS='|' read -r _name _count <<< "${_profiles[$i]}"
+      # "Lang_packages_count" expected to be a printf-style pattern like "%s package(s)"
+      printf "%2d) %s (%s)\n" $((i+1)) "$_name" "$(printf "${Lang_packages_count:-%s package(s)}" "$_count")"
     done
+    echo " 0) ${Lang_back:-Back}"
+    echo ""
+
+    read -rp "${Lang_choose_number:-Choose a number (0 to go back): }" _choice
+    # Go back
+    [[ "$_choice" == "0" ]] && return 0
+    # Only numeric, in range
+    if [[ "$_choice" =~ ^[0-9]+$ ]] && (( _choice >= 1 && _choice <= ${#_profiles[@]} )); then
+      local _idx=$((_choice - 1))
+      IFS='|' read -r _selected _ <<< "${_profiles[$_idx]}"
+
+      # Load packages of the chosen profile
+      mapfile -t _pkgs < <(jq -r --arg p "$_selected" '.profiles[$p][]?' "$PROFILES_FILE")
+      if ((${#_pkgs[@]} == 0)); then
+        echoWarning "${Lang_no_package_found:-No packages found} « $_selected »"
+        continue
+      fi
+
+      echoInformation "$(printf "${Lang_installing_profile:-Installing profile: %s}" "$_selected")"
+      for _p in "${_pkgs[@]}"; do
+        installPackage "$_p"
+      done
+
+      echoCheck "${Lang_profile_done:-Profile installation finished}."
+      return 0
+    else
+      echoError "${Lang_invalid_number:-Invalid number, try again.}"
+    fi
+  done
 }
 
 # ================================================================
@@ -1152,8 +1201,8 @@ function menuProfile {
 
 load_language "fr"
 scriptInformation
-detecterOS
+detectOS
 checkUpdate
 majSysteme
-chargerpackages
+loadPackages
 eval "$GUI"
