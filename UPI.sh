@@ -3,7 +3,7 @@
 # UniversalPackageInstaller (UPI)
 # Auteur : WilliamWolfy
 # Description : Gestion universelle des packages (Linux & Windows)
-# - Tous les packages et profils sont externalisés dans des fichiers JSON
+# - Tous les packages et profils sont externalisés dans des files JSON
 # - Fonctionne sous Linux (apt/snap) et Windows (winget/UnigetUI)
 # - Support export/import JSON et CSV
 # ================================================================
@@ -351,15 +351,17 @@ function managePackages {
     local package="$1"
     local action=""
 
+    title "Manage Packages"
+
     if [[ -z "$package" ]]; then
-        PS3="$Lang_select_action : "
-        select action in "$Lang_add" "$Lang_edit" "$Lang_delete" "$Lang_cancel"; do
+        PS3="${Lang_select_action:-Select action :}"
+        select action in "${Lang_add:-Add}" "${Lang_edit:-Edit}" "${Lang_delete:-Delete}" "${Lang_cancel:-Cancel}"; do
             case $REPLY in
                 1) action="add"; break ;;
                 2) action="edit"; break ;;
                 3) action="delete"; break ;;
                 4) return ;;
-                *) echo "$Lang_invalid_choice." ;;
+                *) echoError "${Lang_invalid_choice:-Invalid choice}" ;;
             esac
         done
     else
@@ -380,7 +382,7 @@ function managePackages {
             elif [[ "$REPLY" -eq $(( ${#package_list[@]} + 1 )) ]]; then
                 return
             else
-                echo "$invalid_choice."
+                echoError "${Lang_invalid_choice:-Invalid choice}"
             fi
         done
     fi
@@ -388,10 +390,10 @@ function managePackages {
     case $action in
         delete)
             jq --arg name "$package" 'del(.packages[] | select(.name==$name))' "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
-            echo "🗑️ $Lang_package_deleted '$package'."
+            echo "🗑️ ${Lang_package_deleted:-Package deleted} '$package'."
             ;;
         edit)
-            echo "✏️ $Lang_package_modified '$package' :"
+            echo "✏️ ${Lang_package_modified:-Package modified} '$package' :"
             read -p "Nouvelle description (laisser vide pour conserver) : " new_description
             read -p "Nouvelle catégorie (laisser vide pour conserver) : " new_category
             [[ -n "$new_description" ]] && jq --arg name "$package" --arg desc "$new_description" \
@@ -412,21 +414,21 @@ function managePackages {
             done
             ;;
         add)
-            echo "➕ Ajout d'un nouveau package :"
-            read -p "$Lang_name : " name
+            echo "➕ ${Lang_prompt_new_package:-Added a new package} :"
+            read -p "${Lang_name:-Name} : " name
             package="$name"
-            read -p "$Lang_description : " description
-            read -p "$Lang_category : " category
+            read -p "${Lang_description:-Description} : " description
+            read -p "${Lang_category:-Category} : " category
 
             declare -a linux_cmds=()
             declare -a windows_cmds=()
             declare -a macos_cmds=()
 
-            read -p "$Lang_command_line Linux (séparées par ';', laisser vide si aucune) : " input
+            read -p "${Lang_command_line:-Command line} Linux (séparées par ';', laisser vide si aucune) : " input
             [[ -n "$input" ]] && IFS=';' read -r -a linux_cmds <<< "$input"
-            read -p "$Lang_command_line Windows (séparées par ';', laisser vide si aucune) : " input
+            read -p "${Lang_command_line:-Command line} Windows (séparées par ';', laisser vide si aucune) : " input
             [[ -n "$input" ]] && IFS=';' read -r -a windows_cmds <<< "$input"
-            read -p "$Lang_command_line macOS (séparées par ';', laisser vide si aucune) : " input
+            read -p "${Lang_command_line:-Command line} macOS (séparées par ';', laisser vide si aucune) : " input
             [[ -n "$input" ]] && IFS=';' read -r -a macos_cmds <<< "$input"
 
             linux_json=$(arrayToJson "${linux_cmds[@]}")
@@ -438,7 +440,7 @@ function managePackages {
                '.packages += [{"name":$name,"category":$cat,"description":$desc,"linux":$linux,"windows":$windows,"macos":$macos}]' \
                "$PACKAGES_FILE" > "$PACKAGES_FILE.tmp" && mv "$PACKAGES_FILE.tmp" "$PACKAGES_FILE"
 
-            echoCheck "$Lang_package_added : '$package'."
+            echoCheck "${Lang_package_added:-Package added} : '$package'."
             ;;
     esac
 }
@@ -455,7 +457,7 @@ download() {
             wget -qO- "$url"
         fi
     else
-        # Mode écriture dans fichier
+        # Mode écriture dans file
         if command -v curl >/dev/null 2>&1; then
             curl -sL -o "$sortie" "$url"
         else
@@ -469,7 +471,7 @@ function installerDepuisLien {
     local nom="$(basename "$url")"
     local dossier_cache="$(dirname "$0")/packages/$OS_FAMILY"
     mkdir -p "$dossier_cache"
-    local fichier="$dossier_cache/$nom"
+    local file="$dossier_cache/$nom"
 
     # Mode cache par défaut
     local CACHE_MODE="normal"
@@ -480,12 +482,12 @@ function installerDepuisLien {
         esac
     done
 
-    # Vérification du fichier existant
-    if [[ -f "$fichier" ]]; then
+    # Vérification du file existant
+    if [[ -f "$file" ]]; then
         case "$CACHE_MODE" in
             force)
                 echo "🔄 $Lang_downloading $url"
-                download "$url" "$fichier"
+                download "$url" "$file"
                 ;;
             cache)
                 echoCheck "$Lang_using_cache"
@@ -494,64 +496,64 @@ function installerDepuisLien {
                 echo "📦 Le package '$nom' est déjà présent."
                 read -p "Voulez-vous le re-télécharger ? (o/n) " rep
                 if [[ "$rep" =~ ^[Oo]$ ]]; then
-                    download "$url" "$fichier"
+                    download "$url" "$file"
                 else
-                    echo "✅ Utilisation du fichier en cache"
+                    echo "✅ Utilisation du file en cache"
                 fi
                 ;;
         esac
     else
-        download "$url" "$fichier"
+        download "$url" "$file"
     fi
 
     # Décompression automatique pour archives
     local unpack_dir="$dossier_cache/unpacked"
     mkdir -p "$unpack_dir"
-    case "$fichier" in
-        *.zip) unzip -o "$fichier" -d "$unpack_dir" ;;
-        *.tar.gz|*.tgz) tar -xzf "$fichier" -C "$unpack_dir" ;;
-        *.tar.xz) tar -xJf "$fichier" -C "$unpack_dir" ;;
+    case "$file" in
+        *.zip) unzip -o "$file" -d "$unpack_dir" ;;
+        *.tar.gz|*.tgz) tar -xzf "$file" -C "$unpack_dir" ;;
+        *.tar.xz) tar -xJf "$file" -C "$unpack_dir" ;;
     esac
 
-    # Installation selon l'OS et type de fichier
+    # Installation selon l'OS et type de file
     case "$OS_FAMILY" in
         Linux)
-            if [[ "$fichier" =~ \.deb$ ]]; then
+            if [[ "$file" =~ \.deb$ ]]; then
                 echo "➡️ Installation .deb"
-                sudo dpkg -i "$fichier" 2>/dev/null || sudo apt-get install -f -y
-            elif [[ "$fichier" =~ \.rpm$ ]]; then
+                sudo dpkg -i "$file" 2>/dev/null || sudo apt-get install -f -y
+            elif [[ "$file" =~ \.rpm$ ]]; then
                 echo "➡️ Installation .rpm"
                 if command -v dnf >/dev/null 2>&1; then
-                    sudo dnf install -y "$fichier" || sudo yum localinstall -y "$fichier"
+                    sudo dnf install -y "$file" || sudo yum localinstall -y "$file"
                 else
-                    sudo yum localinstall -y "$fichier"
+                    sudo yum localinstall -y "$file"
                 fi
-            elif [[ "$fichier" =~ \.AppImage$ ]]; then
-                chmod +x "$fichier"
-                sudo mv "$fichier" /usr/local/bin/
-            elif [[ -x "$fichier" ]]; then
-                bash "$fichier"
+            elif [[ "$file" =~ \.AppImage$ ]]; then
+                chmod +x "$file"
+                sudo mv "$file" /usr/local/bin/
+            elif [[ -x "$file" ]]; then
+                bash "$file"
             fi
             ;;
         Windows)
-            if [[ "$fichier" =~ \.exe$ ]]; then
-                "$fichier" /quiet /norestart || "$fichier"
-            elif [[ "$fichier" =~ \.msi$ ]]; then
-                msiexec /i "$fichier" /quiet /norestart
-            elif [[ "$fichier" =~ \.zip$ ]]; then
-                unzip -o "$fichier" -d "$HOME/AppData/Local/"
+            if [[ "$file" =~ \.exe$ ]]; then
+                "$file" /quiet /norestart || "$file"
+            elif [[ "$file" =~ \.msi$ ]]; then
+                msiexec /i "$file" /quiet /norestart
+            elif [[ "$file" =~ \.zip$ ]]; then
+                unzip -o "$file" -d "$HOME/AppData/Local/"
             fi
             ;;
         MacOS)
-            if [[ "$fichier" =~ \.dmg$ ]]; then
+            if [[ "$file" =~ \.dmg$ ]]; then
                 mkdir -p "$dossier_cache/mnt"
-                hdiutil attach "$fichier" -mountpoint "$dossier_cache/mnt"
+                hdiutil attach "$file" -mountpoint "$dossier_cache/mnt"
                 cp -r "$dossier_cache/mnt"/*.app /Applications/
                 hdiutil detach "$dossier_cache/mnt"
-            elif [[ "$fichier" =~ \.pkg$ ]]; then
-                sudo installer -pkg "$fichier" -target /
-            elif [[ "$fichier" =~ \.zip$ ]]; then
-                unzip -o "$fichier" -d /Applications/
+            elif [[ "$file" =~ \.pkg$ ]]; then
+                sudo installer -pkg "$file" -target /
+            elif [[ "$file" =~ \.zip$ ]]; then
+                unzip -o "$file" -d /Applications/
             fi
             ;;
     esac
@@ -563,7 +565,7 @@ function installerDepuisLien {
 function installPackage {
     local package="$1"
 
-    # Vérifie si le package est défini dans le fichier JSON
+    # Vérifie si le package est défini dans le file JSON
     local data
     data=$(jq -r --arg p "$package" '.packages[] | select(.name==$p)' "$PACKAGES_FILE")
 
@@ -656,12 +658,12 @@ function installPackage {
 # ================================================================
 
 function exportPackages {
-    title "$Lang_export_profile" "*" "cyan"
+    title "${Lang_export_profile:-Export profile}" "*" "cyan"
 
     # --- Étape 1 : Choix des profils existants
-    echo "📂 $Lang_list_profile :"
+    echo "📂 ${Lang_list_profiles:-List of profiles}"
     jq -r '.profiles | keys[]' profiles.json | nl -w2 -s". "
-    read -p "👉 $Lang_select_number : " choixProfils
+    read -p "👉 ${Lang_select_profile_prompt:-Enter profile number(s) (space separated, 0 to cancel): }" choixProfils
 
     packagesFusion=()
 
@@ -677,9 +679,9 @@ function exportPackages {
 
     # --- Étape 2 : Ajouter des packages supplémentaires
     echo
-    echo "📦 ${Lang_available_packages} : "
+    echo "📦 ${Lang_available_packages:-Available packages} : "
     jq -r '.packages[].name' packages.json | nl -w2 -s". "
-    read -p "👉 $Lang_select_number : " choixPkgs
+    read -p "👉 ${Lang_choose_packages:-Enter package numbers or names (space separated, 0 to go back):}" choixPkgs
 
     if [[ -n "$choixPkgs" ]]; then
         for num in $choixPkgs; do
@@ -693,16 +695,16 @@ function exportPackages {
 
     echo "${packageFusion[@]}"
     # --- Étape 3 : Nom du nouveau profil
-    read -p "👉 Entrez le nom du nouveau profil : " newProfile
+    read -p "👉 ${Lang_prompt_profile_name:-Enter export filename (default: %s): } " newProfile
     [[ -z "$newProfile" ]] && newProfile="exported_profile"
 
-    fichierMinimal="$newProfile.json"
-    fichierComplet="$newProfile-full.json"
+    fileMinimal="$newProfile.json"
+    fileComplet="$newProfile-full.json"
 
     # --- JSON minimal (noms seulement)
     jq -n --arg profil "$newProfile" \
         --argjson packages "$(printf '%s\n' "${packagesFusion[@]}" | jq -R . | jq -s .)" \
-        '{($profil): $packages}' > "$fichierMinimal"
+        '{($profil): $packages}' > "$fileMinimal"
 
     # --- JSON complet (objets complets)
     # Crée un tableau avec tous les objets correspondant aux noms des packages fusionnés
@@ -712,94 +714,97 @@ function exportPackages {
         --slurpfile allPackages packages.json \
         '{
             ($profil): $allPackages[0].packages | map(select(.name as $n | $n | IN($noms[])))
-        }' > "$fichierComplet"
+        }' > "$fileComplet"
 
-    echo "✅ Fichiers exportés :"
-    echo "   - Minimal : $fichierMinimal"
-    echo "   - Complet : $fichierComplet"
+    echoCheck "${Lang_file_exported:-File exported}"
+    echo "   - Minimal : $fileMinimal"
+    echo "   - Complet : $fileComplet"
 
     # --- Étape 4 : Ajouter à profiles.json ?
-    read -p "👉 Ajouter ce profil à profiles.json ? (o/n) " reponse
+    read -p "👉 ${Lang_promt_profile_add:-Add this profile to profiles.json? (y/n)}" reponse
     if [[ "$reponse" =~ ^[oOyY]$ ]]; then
         jq --arg profil "$newProfile" \
            --argjson packages "$(printf '%s\n' "${packagesFusion[@]}" | jq -R . | jq -s .)" \
            '.profiles + {($profil): $packages} | {profiles: .}' profiles.json \
            > profiles.json.tmp && mv profiles.json.tmp profiles.json
-        echo "✅ Profil ajouté à profiles.json"
+        echoCheck "${Lang_profile_added:-Profile added to profiles.json}"
     fi
 }
 
-
+# ============================================================
+# importPackages
+# ------------------------------------------------------------
+# FR : Importer un profil de paquets depuis un fichier JSON.
+# EN : Import a package profile from a JSON file.
+# ============================================================
 function importPackages {
-    local fichier="$1"
+    local file="$1"
 
-    # --- Choix du fichier si non fourni
-    if [[ -z "$fichier" ]]; then
-        echo "📂 Sélection du fichier à importer"
-        local fichiers=($(ls "$(dirname "$0")"/*.json 2>/dev/null))
+    # --- Ask for file if not provided
+    if [[ -z "$file" ]]; then
+        title "${Lang_select_file_import:-Select file to import}" "-" "cyan"
+        local files=($(ls "$(dirname "$0")"/*.json 2>/dev/null))
         
-        if [[ ${#fichiers[@]} -eq 0 ]]; then
-            read -rp "⚠️ Aucun fichier JSON trouvé. Entrez le chemin complet du fichier à importer : " fichier
+        if [[ ${#files[@]} -eq 0 ]]; then
+            read -rp "${Lang_no_json_found:-No JSON file found. Enter full path: }" file
         else
-            echo "0) Entrer un chemin personnalisé"
-            for i in "${!fichiers[@]}"; do
-                echo "$((i+1))) ${fichiers[$i]}"
+            echo " 0) ${Lang_custom_path:-Enter a custom path}"
+            for i in "${!files[@]}"; do
+                echo " $((i+1))) ${files[$i]}"
             done
-            read -rp "👉 Choix : " choix
+            read -rp "${Lang_choose_file:-Choose: }" choix
             if [[ "$choix" == "0" ]]; then
-                read -rp "👉 Entrez le chemin complet : " fichier
-            elif [[ "$choix" =~ ^[0-9]+$ ]] && (( choix > 0 && choix <= ${#fichiers[@]} )); then
-                fichier="${fichiers[$((choix-1))]}"
+                read -rp "${Lang_enter_full_path:-Enter full path: }" file
+            elif [[ "$choix" =~ ^[0-9]+$ ]] && (( choix > 0 && choix <= ${#files[@]} )); then
+                file="${files[$((choix-1))]}"
             else
-                echo "❌ Choix invalide"
+                echoError "${Lang_invalid_choice:-Invalid choice}"
                 return 1
             fi
         fi
     fi
 
-    # --- Vérification existence fichier
-    if [[ ! -f "$fichier" ]]; then
-        echo "❌ Fichier introuvable : $fichier"
+    # --- Check file existence
+    if [[ ! -f "$file" ]]; then
+        echoError "${Lang_file_not_found:-File not found}: $file"
         return 1
     fi
 
-    # --- Détection type JSON
-    local typeJSON="minimal"  # par défaut minimal
-    local cleProfil
-    cleProfil=$(jq -r 'keys[0]' "$fichier" 2>/dev/null)
-    if jq -e ".\"$cleProfil\"[0] | type == \"object\"" "$fichier" >/dev/null 2>&1; then
-        typeJSON="complet"
+    # --- Detect JSON type
+    local typeJSON="minimal"
+    local profileKey
+    profileKey=$(jq -r 'keys[0]' "$file" 2>/dev/null)
+    if jq -e ".\"$profileKey\"[0] | type == \"object\"" "$file" >/dev/null 2>&1; then
+        typeJSON="complete"
     fi
 
-    echo "📂 Import du profil : $cleProfil ($typeJSON)"
+    echoInformation "📂 $(printf "${Lang_import_profile:-Importing profile: %s (%s)}" "$profileKey" "$typeJSON")"
 
     local packages=()
     if [[ "$typeJSON" == "minimal" ]]; then
-        packages=($(jq -r ".\"$cleProfil\"[]" "$fichier"))
+        packages=($(jq -r ".\"$profileKey\"[]" "$file"))
     else
-        # JSON complet : on récupère les noms et ajoute les packages inconnus dans packages.json
-        mapfile -t packages < <(jq -r ".\"$cleProfil\"[].name" "$fichier")
+        # JSON complete: fetch package names and add unknown ones to packages.json
+        mapfile -t packages < <(jq -r ".\"$profileKey\"[].name" "$file")
         for p in "${packages[@]}"; do
-            exists=$(jq -e --arg name "$p" '.packages[] | select(.name==$name)' packages.json >/dev/null 2>&1; echo $?)
-            if [[ $exists -ne 0 ]]; then
-                # Ajout automatique du package complet
-                jq --argjson pkg "$(jq -r ".\"$cleProfil\"[] | select(.name==\"$p\")" "$fichier")" \
+            if ! jq -e --arg name "$p" '.packages[] | select(.name==$name)' packages.json >/dev/null 2>&1; then
+                jq --argjson pkg "$(jq ".\"$profileKey\"[] | select(.name==\"$p\")" "$file")" \
                    '.packages += [$pkg]' packages.json > packages.json.tmp && mv packages.json.tmp packages.json
-                echo "➕ package inconnu '$p' ajouté dans packages.json"
+                echoCheck "➕ $(printf "${Lang_added_unknown_package:-Unknown package '%s' added to packages.json}" "$p")"
             fi
         done
     fi
 
-    # --- Supprimer doublons
+    # --- Remove duplicates
     packages=($(printf "%s\n" "${packages[@]}" | sort -u))
 
-    # --- Mise à jour profiles.json
-    jq --arg profil "$cleProfil" --argjson packages "$(printf '%s\n' "${packages[@]}" | jq -R . | jq -s .)" \
-       '.profiles + {($profil): $packages} | {profiles: .}' profiles.json > profiles.json.tmp && mv profiles.json.tmp profiles.json
-    echo "✅ Profil '$cleProfil' ajouté ou mis à jour dans profiles.json"
+    # --- Update profiles.json
+    jq --arg profile "$profileKey" --argjson packages "$(printf '%s\n' "${packages[@]}" | jq -R . | jq -s .)" \
+       '.profiles + {($profile): $packages} | {profiles: .}' profiles.json > profiles.json.tmp && mv profiles.json.tmp profiles.json
+    echoCheck "✅ $(printf "${Lang_profile_added:-Profile '%s' added or updated in profiles.json}" "$profileKey")"
 
-    # --- Installation des packages
-    echo "📦 Installation des packages du profil : ${packages[*]}"
+    # --- Install packages
+    echoInformation "📦 $(printf "${Lang_installing_packages:-Installing packages from profile: %s}" "${packages[*]}")"
     for p in "${packages[@]}"; do
         installPackage "$p"
     done
@@ -996,7 +1001,7 @@ function menuWhiptailPersonnalise {
 
 function menuWhiptailProfil {
     if [[ ! -f "$PROFILES_FILE" ]]; then
-        echo "❌ Fichier $PROFILES_FILE introuvable"
+        echo "❌ file $PROFILES_FILE introuvable"
         return 1
     fi
 
@@ -1034,7 +1039,7 @@ function menuWhiptailProfil {
 
 function menuWhiptailProfil {
     if [[ ! -f "$PROFILES_FILE" ]]; then
-        echo "❌ Fichier $PROFILES_FILE introuvable"
+        echo "❌ file $PROFILES_FILE introuvable"
         return 1
     fi
 
@@ -1086,7 +1091,7 @@ function menuMain() {
     echo "0) ${Lang_exit:-Exit}"
     echo ""
 
-    read -rp "${Lang_your_choice:-Your choice}: " _sel
+    read -rp "${Lang_your_choice:-Your choice: }" _sel
     case "$_sel" in
       1) menuCustom ;;      # (ou menuPersonnalise si tu n’as pas encore renommé)
       2) menuProfile ;;
@@ -1203,6 +1208,6 @@ load_language "fr"
 scriptInformation
 detectOS
 checkUpdate
-majSysteme
+majSystem
 loadPackages
 eval "$GUI"
