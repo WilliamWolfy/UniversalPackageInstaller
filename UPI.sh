@@ -20,6 +20,8 @@ url_script="https://raw.githubusercontent.com/WilliamWolfy/UniversalPackageInsta
 
 scriptRepertory="$(pwd)"
 
+LANG_FILE="lang.json"
+DEFAULT_LANG="fr"
 PACKAGES_FILE="packages.json"
 PROFILES_FILE="profiles.json"
 
@@ -29,22 +31,26 @@ GUI="menu"
 # Utilitaires d'affichage
 # ================================================================
 
-function load_language {
+load_language() {
     local lang="$1"
 
-    # Vérifie que le fichier existe
-    if [[ ! -f lang.json ]]; then
-        echo "⚠️ File lang.json not found!"
+    if [[ ! -f "$LANG_FILE" ]]; then
+        echo "❌ Fichier de langue introuvable: $LANG_FILE"
         return 1
     fi
 
-    # Boucle sur chaque clé/valeur pour créer des variables
+    # Charger toutes les clés Lang_ pour la langue choisie
     while IFS="=" read -r key value; do
-        # Supprime les guillemets autour de la valeur
-        value="${value%\"}"
-        value="${value#\"}"
-        export "$key=$value"
-    done < <(jq -r ".${lang} | to_entries | .[] | \"\(.key)=\(.value)\"" lang.json)
+        export "$key"="$value"
+    done < <(jq -r ".${lang} | to_entries[] | \"\(.key)=\(.value)\"" "$LANG_FILE")
+
+    # Vérification des variables obligatoires
+    local required_keys=("Lang_welcome" "Lang_exit" "Lang_invalid_choice" "Lang_your_choice")
+    for rk in "${required_keys[@]}"; do
+        if [[ -z "${!rk}" ]]; then
+            echo "⚠️ Attention: clé manquante \"$rk\" dans la langue \"$lang\""
+        fi
+    done
 }
 
 function echoColor {
@@ -244,22 +250,21 @@ function detecterOS {
     echoInformation "🖥️ OS : $OS_FAMILY / $OS_DISTRO / $OS_VERSION"
 }
 
-
 # Vérifier connexion internet
 function checkInternet {
-  echo "🔎 $Lang_internet_check..."
+  echo "🔎 ${Lang_check_internet}..."
   if command -v curl >/dev/null 2>&1; then
     if curl -I -m 5 -s https://github.com >/dev/null; then
-      echoCheck "$Lang_internet_ok."
+      echoCheck "${Lang_internet_ok}."
       return 0
     fi
   fi
   # fallback ping (Linux: -c ; Windows: -n)
   if ping -c 1 github.com >/dev/null 2>&1 || ping -n 1 github.com >/dev/null 2>&1; then
-    echoCheck "$Lang_internet_ok."
+    echoCheck "${Lang_internet_ok}."
     return 0
   fi
-  echoError "$Lang_internet_fail."
+  echoError "${Lang_internet_fail}."
   exit 1
 }
 
@@ -276,7 +281,7 @@ function chargerpackages {
 function loadProfile {
     local profil="$1"
     if [[ ! -f "$PROFILES_FILE" ]]; then
-        echoError "$Lang_file_not_found : $PROFILES_FILE"
+        echoError "${Lang_file_not_found} : $PROFILES_FILE"
         return 1
     fi
     jq -r --arg p "$profil" '.profiles[$p][]?' "$PROFILES_FILE"
@@ -1005,7 +1010,7 @@ function menu {
         echo "5) ${Lang_manage_packages:-Manage packages}"
         echo "0) ${Lang_exit:-Exit}"
         echo ""
-        read -p "${Lang_your_choice:-Your choice}: " choice
+        read -p "${Lang_your_choice:-Your choice}" choice
         case "$choice" in
             1) menuPersonnalise ;;
             2) menuProfile ;;
@@ -1019,24 +1024,39 @@ function menu {
 }
 
 function menuPersonnalise {
-    mapfile -t packages < <(jq -r '.packages[].name' "$PACKAGES_FILE" | sort)
+    if [[ ! -f "$PACKAGES_FILE" ]]; then
+        echoError "${Lang_file_not_found:-File not found}: $PACKAGES_FILE"
+        return 1
+    fi
 
-    title "$Lang_available_packages"
-    for i in "${!packages[@]}"; do
-        printf "%2d) %s\n" "$((i+1))" "${packages[$i]}"
-    done
+    # Charger et trier les paquets
+    mapfile -t packagesList < <(jq -r '.packages[] | "\(.name)|\(.description)"' "$PACKAGES_FILE" | sort -t'|' -k1,1)
+    (( ${#packagesList[@]} == 0 )) && { echoError "${Lang_no_packages:-No packages available}"; return 1; }
 
-    read -p "$Lang_enter_packages" choices
-    for choice in $choices; do
-        if [[ "$choice" =~ ^[0-9]+$ ]]; then
-            if (( choice > 0 && choice <= ${#packages[@]} )); then
-                installPackage "${packages[$((choice-1))]}"
+    while true; do
+        echo ""
+        title "${Lang_available_packages:-Available packages}" "-" "cyan"
+        for i in "${!packagesList[@]}"; do
+            IFS="|" read -r pkgName pkgDesc <<< "${packagesList[$i]}"
+            printf "%2d) %s : %s\n" $((i+1)) "$pkgName" "$pkgDesc"
+        done
+        echo " 0) ${Lang_back:-Back to menu}"
+        echo ""
+
+        read -p "${Lang_choose_packages:-Enter package numbers or names (0 to go back): } " userChoice
+        [[ -z "$userChoice" ]] && continue
+        [[ "$userChoice" == "0" ]] && return 0
+
+        for choice in $userChoice; do
+            if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >=1 && choice <= ${#packagesList[@]} )); then
+                idx=$((choice-1))
+                IFS="|" read -r pkgName _ <<< "${packagesList[$idx]}"
+                installPackage "$pkgName"
             else
-                echo "$Lang_invalid_number $choice"
+                # Considérer que l’utilisateur a entré un nom directement
+                installPackage "$choice"
             fi
-        else
-            installPackage "$choice"
-        fi
+        done
     done
 }
 
