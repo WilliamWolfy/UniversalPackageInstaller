@@ -3,6 +3,10 @@
     "en": "Add",
     "fr": "Ajouter"
   },
+  "Lang_add_command": {
+    "fr": "Ajouter une commande pour %s (laisser vide pour passer)",
+    "en": "Add a command for %s (leave empty to skip)"
+  },
   "Lang_added_package_from_profile": {
     "en": "Added unknown package to packages.json:",
     "fr": "Paquet inconnu ajouté à packages.json :"
@@ -10,6 +14,10 @@
   "Lang_added_unknown_package": {
     "en": "Unknown package '%s' added to packages.json",
     "fr": "Paquet inconnu ajouter à packages.json"
+  },
+  "Lang_already_present": {
+    "fr": "📦 Le package '%s' est déjà présent.",
+    "en": "📦 Package '%s' is already present."
   },
   "Lang_available_packages": {
     "en": "Available packages",
@@ -35,6 +43,10 @@
     "en": "Cancel",
     "fr": "Annuler"
   },
+  "Lang_category": {
+    "en": "Category",
+    "fr": "Catégorie"
+  },
   "Lang_check_internet": {
     "en": "Checking internet...",
     "fr": "Vérification d'internet..."
@@ -50,6 +62,22 @@
   "Lang_choose_packages": {
     "en": "Enter package numbers or names (space separated, 0 to go back):",
     "fr": "Entrez numéros ou noms (séparés par espaces, 0 = retour) :"
+  },
+  "Lang_command_line": {
+    "en": "Command line",
+    "fr": "Ligne de commande"
+  },
+  "Lang_command_line_linux": {
+    "fr": "Commande Linux (séparées par ';', vide si aucune)",
+    "en": "Linux command line (separated by ';', empty if none)"
+  },
+  "Lang_command_line_macos": {
+    "fr": "Commande macOS (séparées par ';', vide si aucune)",
+    "en": "macOS command line (separated by ';', empty if none)"
+  },
+  "Lang_command_line_windows": {
+    "fr": "Commande Windows (séparées par ';', vide si aucune)",
+    "en": "Windows command line (separated by ';', empty if none)"
   },
   "Lang_confirm_delete": {
     "en": "Confirm delete? (y/n)",
@@ -74,6 +102,10 @@
   "Lang_delete": {
     "en": "Delete",
     "fr": "Supprimer"
+  },
+  "Lang_description": {
+    "en": "Description",
+    "fr": "Description"
   },
   "Lang_download_failed": {
     "en": "Download failed:",
@@ -106,6 +138,10 @@
   "Lang_error": {
     "en": "Error:",
     "fr": "Erreur :"
+  },
+  "Lang_existing_commands": {
+    "fr": "Commandes existantes pour %s",
+    "en": "Existing commands for %s"
   },
   "Lang_exit": {
     "en": "Exit",
@@ -155,17 +191,53 @@
     "en": "Install all packages",
     "fr": "Installer tous les paquets"
   },
+  "Lang_install_appimage": {
+    "fr": "➡️ Installation AppImage",
+    "en": "➡️ Installing AppImage"
+  },
   "Lang_install_commands": {
     "en": "Execute install commands",
     "fr": "Exécuter commandes d'installation"
+  },
+  "Lang_install_deb": {
+    "fr": "➡️ Installation du paquet .deb",
+    "en": "➡️ Installing .deb package"
+  },
+  "Lang_install_dmg": {
+    "fr": "➡️ Montage et installation du DMG",
+    "en": "➡️ Mounting and installing DMG"
+  },
+  "Lang_install_exe": {
+    "fr": "➡️ Installation de l'exécutable Windows",
+    "en": "➡️ Installing Windows executable"
   },
   "Lang_install_from_url": {
     "en": "Install from URL",
     "fr": "Installer depuis URL"
   },
+  "Lang_install_msi": {
+    "fr": "➡️ Installation du paquet MSI",
+    "en": "➡️ Installing MSI package"
+  },
+  "Lang_install_pkg": {
+    "fr": "➡️ Installation du paquet PKG",
+    "en": "➡️ Installing PKG package"
+  },
   "Lang_install_profile": {
     "en": "Install profile",
     "fr": "Installer un profil"
+  },
+  "Lang_install_rpm": {
+    "fr": "➡️ Installation du paquet .rpm",
+    "en": "➡️ Installing .rpm package"
+  },
+  "Lang_install_success": {
+    "fr": "Installation réussie de",
+    "en": "Successfully installed"
+  },
+  "Lang_install_zip": {
+    "fr": "➡️ Décompression du ZIP",
+    "en": "➡️ Extracting ZIP"
   },
   "Lang_installing_package": {
     "en": "Installing package:",
@@ -214,6 +286,18 @@
   "Lang_menu_header": {
     "en": "Universal Package Installer",
     "fr": "Universal Package Installer"
+  },
+  "Lang_name": {
+    "en": "Name",
+    "fr": "Nom"
+  },
+  "Lang_new_category": {
+    "fr": "Nouvelle catégorie (laisser vide pour conserver)",
+    "en": "New category (leave empty to keep current)"
+  },
+  "Lang_new_description": {
+    "fr": "Nouvelle description (laisser vide pour conserver)",
+    "en": "New description (leave empty to keep current)"
   },
   "Lang_no": {
     "en": "No",
@@ -311,6 +395,10 @@
     "en": "Profiles file not found:",
     "fr": "Fichier profiles introuvable :"
   },
+  "Lang_prompt_new_package": {
+    "en": "Added a new package",
+    "fr": "Ajout d'un nouveau paquet"
+  },
   "Lang_prompt_profile_filename": {
     "en": "Enter export filename (default: %s):",
     "fr": "Nom du fichier d'export (par défaut : %s) :"
@@ -342,6 +430,10 @@
   "Lang_question_invalid": {
     "en": "Invalid input, try again.",
     "fr": "Entrée invalide, réessayez."
+  },
+  "Lang_redownload_prompt": {
+    "fr": "Voulez-vous le re-télécharger ? (o/n) ",
+    "en": "Do you want to re-download it? (y/n) "
   },
   "Lang_return_menu": {
     "en": "Returning to main menu...",
@@ -383,6 +475,10 @@
     "en": "Unable to check latest version",
     "fr": "Impossible de vérifier la dernière version"
   },
+  "Lang_unknown": {
+    "en": "Unknown",
+    "fr": "Inconnu"
+  },
   "Lang_update_available": {
     "en": "New version available:",
     "fr": "Nouvelle version disponible :"
@@ -411,6 +507,14 @@
     "en": "Using cached file",
     "fr": "Utilisation du cache"
   },
+  "Lang_using_cache": {
+    "fr": "Utilisation du cache",
+    "en": "Using cache"
+  },
+  "Lang_using_cached_file": {
+    "fr": "Utilisation du fichier en cache",
+    "en": "Using cached file"
+  },
   "Lang_version": {
     "en": "Version:",
     "fr": "Version :"
@@ -430,25 +534,5 @@
   "Lang_your_choice": {
     "en": "Your choice:",
     "fr": "Votre choix :"
-  },
-  "Lang_name": {
-    "en": "Name",
-    "fr": "Nom"
-  },
-  "Lang_description": {
-    "en": "Description",
-    "fr": "Description"
-  },
-  "Lang_category": {
-    "en": "Category",
-    "fr": "Catégorie"
-  },
-  "Lang_command_line": {
-    "en": "Command line",
-    "fr": "Ligne de commande"
-  },
-  "Lang_prompt_new_package": {
-    "en": "Added a new package",
-    "fr": "Ajout d'un nouveau paquet"
   }
 }
